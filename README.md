@@ -26,7 +26,9 @@ mini-erp-crm/
 1. `cd server && npm install`
 2. Copy `.env.example` to `.env` and fill in the real values (see table below).
 3. Run the initial migration: `npx prisma migrate dev`
-4. (Seed script and `npm run dev` command land in Task 2/3.)
+4. Start the dev server: `npm run dev` — runs on `http://localhost:<PORT>`
+5. Check `GET /health` — returns `{ "status": "ok" }` if the app and database are both reachable.
+6. (Seed script lands in Task 3.)
 
 ### Environment Variables
 
@@ -56,7 +58,7 @@ Defined in `server/prisma/schema.prisma`. Core models:
 ## Progress
 
 - [x] **Task 1** — TypeScript config, Prisma schema, initial migration, `.env.example`
-- [ ] Task 2 — Express app skeleton, error handling, health check, Prisma client singleton
+- [x] **Task 2** — Express app skeleton, error handling, health check, Prisma client singleton
 - [ ] Task 3 — Auth (seed script, login, JWT middleware, role guards)
 - [ ] Task 4 — Customer CRM APIs
 - [ ] Task 5 — Product & stock movement APIs
@@ -77,3 +79,11 @@ Defined in `server/prisma/schema.prisma`. Core models:
   `$transaction` in the challan-confirm endpoint, Task 6), not a database `CHECK` constraint.
 - **`Customer.mobile` is not unique** — multiple contacts at the same business may share a
   phone number.
+- **TypeScript pinned to 5.9.3, not 7.x** — `ts-node-dev`/`ts-node` (the dev-time TS runner)
+  don't yet support TypeScript 7's internal compiler API changes and crash on startup with it.
+  5.9.3 is the current stable line most tooling targets.
+- **Error handling** — a single `AppError` class + centralized Express error-handling
+  middleware (`src/middleware/errorHandler.ts`). Route code throws `AppError(status, message)`
+  for expected failures (validation, not found, business rules); anything else falls through
+  as a generic 500. Keeps error formatting consistent across every endpoint instead of each
+  route handling errors ad hoc.
