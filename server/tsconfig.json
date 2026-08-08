@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    /* Project layout */
+    "rootDir": "./src",
+    "outDir": "./dist",
+
+    /* Module system: CommonJS (no "type": "module" in package.json), since we're using ts-node-dev and Prisma's generator is set to moduleFormat = "cjs" */
+    "module": "node16",
+    "moduleResolution": "node16",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "types": ["node"],
+
+    /* Interop */
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+
+    /* Type safety */
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+
+    /* Build output */
+    "sourceMap": true,
+    "declaration": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

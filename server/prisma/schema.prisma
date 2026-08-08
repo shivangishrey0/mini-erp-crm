@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  SALES
+  WAREHOUSE
+  ACCOUNTS
+}
+
+enum CustomerType {
+  RETAIL
+  WHOLESALE
+  DISTRIBUTOR
+}
+
+enum CustomerStatus {
+  LEAD
+  ACTIVE
+  INACTIVE
+}
+
+enum MovementType {
+  IN
+  OUT
+}
+
+enum ChallanStatus {
+  DRAFT
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id        String          @id @default(uuid())
+  name      String
+  email     String          @unique
+  password  String
+  role      Role
+  createdAt DateTime        @default(now())
+
+  followUps FollowUpNote[]
+  movements StockMovement[]
+  challans  Challan[]
+}
+
+model Customer {
+  id           String          @id @default(uuid())
+  name         String
+  mobile       String
+  email        String?
+  businessName String
+  gstNumber    String?
+  type         CustomerType
+  address      String
+  status       CustomerStatus  @default(LEAD)
+  followUpDate DateTime?
+  notes        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  followUps    FollowUpNote[]
+  challans     Challan[]
+}
+
+model FollowUpNote {
+  id         String   @id @default(uuid())
+  note       String
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId String
+  createdBy  User     @relation(fields: [userId], references: [id])
+  userId     String
+  createdAt  DateTime @default(now())
+}
+
+model Product {
+  id            String          @id @default(uuid())
+  name          String
+  sku           String          @unique
+  category      String
+  unitPrice     Decimal         @db.Decimal(10, 2)
+  currentStock  Int             @default(0)
+  minStockAlert Int             @default(0)
+  location      String
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  movements     StockMovement[]
+  challanItems  ChallanItem[]
+}
+
+model StockMovement {
+  id        String       @id @default(uuid())
+  product   Product      @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int
+  type      MovementType
+  reason    String
+  createdBy User         @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime     @default(now())
+}
+
+model Challan {
+  id            String        @id @default(uuid())
+  challanNumber String        @unique
+  customer      Customer      @relation(fields: [customerId], references: [id])
+  customerId    String
+  status        ChallanStatus @default(DRAFT)
+  totalQuantity Int
+  createdBy     User          @relation(fields: [userId], references: [id])
+  userId        String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  items         ChallanItem[]
+}
+
+model ChallanItem {
+  id          String  @id @default(uuid())
+  challan     Challan @relation(fields: [challanId], references: [id], onDelete: Cascade)
+  challanId   String
+  product     Product @relation(fields: [productId], references: [id])
+  productId   String
+  productName String
+  sku         String
+  unitPrice   Decimal @db.Decimal(10, 2)
+  quantity    Int
+}
