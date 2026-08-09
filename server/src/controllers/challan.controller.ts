@@ -35,17 +35,27 @@ async function confirmChallanTx(tx: TxClient, challanId: string, userId: string)
     throw new AppError(400, "Cannot confirm a cancelled challan");
   }
 
-  // Validate every line before changing any stock, so one bad line reports
-  // clearly instead of stopping at the first shortfall mid-update.
+  // Aggregate requested quantity per product first - the same product can
+  // appear on more than one line, and validating/decrementing line-by-line
+  // against the same pre-decrement stock snapshot would let two lines each
+  // individually "pass" while their combined quantity pushes stock negative.
+  const requestedByProduct = new Map<string, number>();
   for (const item of challan.items) {
-    const product = await tx.product.findUnique({ where: { id: item.productId } });
+    requestedByProduct.set(item.productId, (requestedByProduct.get(item.productId) ?? 0) + item.quantity);
+  }
+
+  // Validate every product's total demand before changing any stock, so one
+  // bad line reports clearly instead of stopping at the first shortfall
+  // mid-update.
+  for (const [productId, requestedQty] of requestedByProduct) {
+    const product = await tx.product.findUnique({ where: { id: productId } });
     if (!product) {
-      throw new AppError(404, `Product ${item.productName} no longer exists`);
+      throw new AppError(404, `Product ${productId} no longer exists`);
     }
-    if (item.quantity > product.currentStock) {
+    if (requestedQty > product.currentStock) {
       throw new AppError(
         400,
-        `Insufficient stock for ${product.name}: available ${product.currentStock}, requested ${item.quantity}`
+        `Insufficient stock for ${product.name}: available ${product.currentStock}, requested ${requestedQty}`
       );
     }
   }

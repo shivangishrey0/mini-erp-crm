@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { Prisma } from "@prisma/client";
 
 // Thrown deliberately by route/service code for expected failure cases
 // (validation, not found, business rule violations) with a specific HTTP
@@ -21,6 +22,14 @@ export function notFoundHandler(req: Request, res: Response) {
 export function errorHandler(err: unknown, req: Request, res: Response, next: NextFunction) {
   if (err instanceof AppError) {
     res.status(err.statusCode).json({ error: err.message });
+    return;
+  }
+
+  // A foreseeable user error (e.g. duplicate SKU), not an unexpected bug -
+  // give it a proper 409 instead of falling through to a generic 500.
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    const fields = (err.meta?.target as string[] | undefined)?.join(", ") ?? "value";
+    res.status(409).json({ error: `A record with this ${fields} already exists` });
     return;
   }
 
