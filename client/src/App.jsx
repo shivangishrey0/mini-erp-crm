@@ -10,6 +10,9 @@ import CustomerDetailPage from "./pages/customers/CustomerDetailPage";
 import ProductsListPage from "./pages/products/ProductsListPage";
 import ProductFormPage from "./pages/products/ProductFormPage";
 import ProductDetailPage from "./pages/products/ProductDetailPage";
+import ChallansListPage from "./pages/challans/ChallansListPage";
+import ChallanCreatePage from "./pages/challans/ChallanCreatePage";
+import ChallanDetailPage from "./pages/challans/ChallanDetailPage";
 
 export default function App() {
   return (
@@ -35,6 +38,10 @@ export default function App() {
             <Route path="/products/new" element={<ProductFormPage />} />
             <Route path="/products/:id" element={<ProductDetailPage />} />
             <Route path="/products/:id/edit" element={<ProductFormPage />} />
+
+            <Route path="/challans" element={<ChallansListPage />} />
+            <Route path="/challans/new" element={<ChallanCreatePage />} />
+            <Route path="/challans/:id" element={<ChallanDetailPage />} />
           </Route>
         </Routes>
       </AuthProvider>
