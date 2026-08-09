@@ -1,4 +1,5 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, useLocation, useOutlet } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 import { DashboardIcon, CustomersIcon, ProductsIcon, ChallansIcon, LogoutIcon } from "./icons";
 
@@ -17,6 +18,28 @@ function initials(name) {
     .slice(0, 2)
     .join("")
     .toUpperCase();
+}
+
+// useOutlet() (not <Outlet /> directly) so the resolved element can be given
+// a location-keyed wrapper for AnimatePresence - <Outlet /> alone doesn't
+// reliably trigger exit animations on route change.
+function AnimatedOutlet() {
+  const location = useLocation();
+  const element = useOutlet();
+
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -6, transition: { duration: 0.12 } }}
+        transition={{ duration: 0.2, ease: "easeOut" }}
+      >
+        {element}
+      </motion.div>
+    </AnimatePresence>
+  );
 }
 
 // Mobile: stacked top bar (brand, scrollable nav row, user+logout row).
@@ -38,18 +61,24 @@ export default function Layout() {
 
         <nav className="flex gap-1 overflow-x-auto border-t border-gray-100 px-3 py-2 md:flex-1 md:flex-col md:gap-0.5 md:space-y-0 md:overflow-visible md:border-t-0 md:py-0">
           {navItems.map(({ to, label, Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === "/"}
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-100"
-                }`
-              }
-            >
-              <Icon className="h-[18px] w-[18px] shrink-0" />
-              {label}
+            <NavLink key={to} to={to} end={to === "/"} className="relative whitespace-nowrap">
+              {({ isActive }) => (
+                <span
+                  className={`relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                    isActive ? "text-indigo-700" : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="sidebar-active-pill"
+                      className="absolute inset-0 rounded-md bg-indigo-50"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                    />
+                  )}
+                  <Icon className="relative h-[18px] w-[18px] shrink-0" />
+                  <span className="relative">{label}</span>
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -75,7 +104,7 @@ export default function Layout() {
       </aside>
 
       <main className="flex-1 overflow-y-auto p-4 md:p-6">
-        <Outlet />
+        <AnimatedOutlet />
       </main>
     </div>
   );
