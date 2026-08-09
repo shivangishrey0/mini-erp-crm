@@ -26,9 +26,9 @@ mini-erp-crm/
 1. `cd server && npm install`
 2. Copy `.env.example` to `.env` and fill in the real values (see table below).
 3. Run the initial migration: `npx prisma migrate dev`
-4. Start the dev server: `npm run dev` — runs on `http://localhost:<PORT>`
-5. Check `GET /health` — returns `{ "status": "ok" }` if the app and database are both reachable.
-6. (Seed script lands in Task 3.)
+4. Seed test users: `npx prisma db seed` — creates one user per role (see Test Credentials below)
+5. Start the dev server: `npm run dev` — runs on `http://localhost:<PORT>`
+6. Check `GET /health` — returns `{ "status": "ok" }` if the app and database are both reachable.
 
 ### Environment Variables
 
@@ -40,6 +40,27 @@ mini-erp-crm/
 | `PORT`         | Port the Express server listens on                                  |
 
 Prisma 6 reads these directly from `.env` (no `prisma.config.ts` needed).
+
+## Test Credentials
+
+Created by `npx prisma db seed`. All 4 roles share the same password (dev/test-only, never do
+this in production).
+
+| Email                   | Password       | Role       |
+|--------------------------|----------------|------------|
+| `admin@example.com`      | `Password123!` | ADMIN      |
+| `sales@example.com`      | `Password123!` | SALES      |
+| `warehouse@example.com`  | `Password123!` | WAREHOUSE  |
+| `accounts@example.com`   | `Password123!` | ACCOUNTS   |
+
+## API Endpoints
+
+| Method | Path              | Auth              | Description                          |
+|--------|-------------------|-------------------|---------------------------------------|
+| GET    | `/health`         | none              | Liveness + DB connectivity check      |
+| POST   | `/auth/login`     | none              | Returns `{ token, user }` on success  |
+| GET    | `/auth/me`        | Bearer token      | Returns the current user's profile    |
+| GET    | `/auth/admin-only`| Bearer token, ADMIN only | Temporary roleGuard smoke test — remove once Task 4+ adds real role-restricted routes |
 
 ## Database Schema
 
@@ -59,7 +80,7 @@ Defined in `server/prisma/schema.prisma`. Core models:
 
 - [x] **Task 1** — TypeScript config, Prisma schema, initial migration, `.env.example`
 - [x] **Task 2** — Express app skeleton, error handling, health check, Prisma client singleton
-- [ ] Task 3 — Auth (seed script, login, JWT middleware, role guards)
+- [x] **Task 3** — Auth (seed script, login, JWT middleware, role guards)
 - [ ] Task 4 — Customer CRM APIs
 - [ ] Task 5 — Product & stock movement APIs
 - [ ] Task 6 — Challan APIs (draft/confirm/cancel, stock transaction logic)
@@ -87,3 +108,11 @@ Defined in `server/prisma/schema.prisma`. Core models:
   for expected failures (validation, not found, business rules); anything else falls through
   as a generic 500. Keeps error formatting consistent across every endpoint instead of each
   route handling errors ad hoc.
+- **Auth vs. role guard are separate middlewares** — `authMiddleware` answers "who is this?"
+  (valid token → `req.user`), `roleGuard(allowedRoles)` answers "are they allowed to do this?".
+  Routes compose them independently instead of one monolithic check.
+- **JWT payload is minimal** — just `{ userId, role }`, not the full user object, so tokens
+  stay small and never go stale if a user's name/email changes without re-login. Token expiry
+  is 8h (workday-length session for an internal staff tool).
+- **Login returns the same error for "no such user" and "wrong password"** (401, generic
+  message) so the response can't be used to enumerate registered emails.

@@ -3,6 +3,7 @@ import cors from "cors";
 import express from "express";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { prisma } from "./lib/prisma";
+import authRoutes from "./routes/auth.routes";
 
 const app = express();
 
@@ -13,6 +14,8 @@ app.get("/health", async (req, res) => {
   await prisma.$queryRaw`SELECT 1`;
   res.json({ status: "ok" });
 });
+
+app.use("/auth", authRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);
