@@ -73,7 +73,11 @@ export default function ChallanCreatePage() {
     <div className="max-w-3xl">
       <h1 className="mb-4 text-xl font-semibold text-gray-900">Create Challan</h1>
 
-      <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
+      {/* Plain onSubmit preventDefault, not a real submit handler - there are
+          two distinct actions (draft vs confirm), so Enter shouldn't trigger
+          either implicitly. The <form> wrapper is still worth having for
+          semantics/accessibility (label associations, browser autofill). */}
+      <form onSubmit={(event) => event.preventDefault()} className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
         <div>
           <label className="block text-sm font-medium text-gray-700">
             Customer <span className="text-red-500">*</span>
@@ -169,7 +173,7 @@ export default function ChallanCreatePage() {
             Save &amp; Confirm
           </button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

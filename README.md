@@ -110,7 +110,7 @@ Defined in `server/prisma/schema.prisma`. Core models:
 - [x] **Task 5** — Product & stock movement APIs
 - [x] **Task 6** — Challan APIs (draft/confirm/cancel, stock transaction logic)
 - [x] **Task 7** — Frontend setup (Vite React client, Tailwind, auth context, protected routes, sidebar layout)
-- [ ] Task 8 — Frontend pages
+- [x] **Task 8** — Frontend pages (customers, products + stock, challan creation flow, role-aware navigation)
 - [ ] Task 9 — Polish
 - [ ] Task 10 — Docs & submission prep
 
@@ -190,3 +190,26 @@ Defined in `server/prisma/schema.prisma`. Core models:
   project's scope.
 - **`ProtectedRoute` takes an optional `allowedRoles` prop it doesn't use yet** — built now so
   Task 8's role-gated pages don't need new routing infrastructure, just a prop.
+- **"Role-aware navigation" means action buttons, not sidebar links** — since the backend
+  allows every authenticated role to *read* customers/products/challans, all 3 nav links stay
+  visible to everyone. What's role-gated is the Add/Edit/Confirm/Cancel buttons on each page,
+  matching the backend's actual write permissions 1:1 — no point showing a button that would
+  just 403.
+- **Task 8 vs. Task 9 split:** Task 8 pages are fully *functional* — real search input and
+  prev/next pagination wired to the live API, basic "Loading…"/"Error: …" text — not stub pages.
+  Task 9 is *polish* on top: debounced search, skeleton loaders, retry buttons, richer low-stock
+  styling. Building broken pages now just to "wire them up later" wouldn't make sense.
+- **Bug found and fixed during Task 8 build:** `ChallanCreatePage` was originally a plain `<div>`
+  wrapper instead of a `<form>`, since it has two distinct submit actions (Save as Draft / Save
+  & Confirm) rather than one. That's not just a testing inconvenience — without a `<form>`
+  element there's no native label association or Enter-key semantics tying the inputs together.
+  Fixed by wrapping in `<form onSubmit={(e) => e.preventDefault()}>`: keeps both actions as
+  explicit `type="button"` clicks (avoiding "which action does Enter mean" ambiguity) while
+  restoring proper form semantics.
+- **Verification approach:** built all 3 modules (Customers, Products, Challans) first, then ran
+  one comprehensive Playwright pass (headless system Chrome, no browser download needed) across
+  live dev servers covering: product creation + stock IN, customer creation + search, the full
+  challan create-and-confirm flow with a live stock-count verification (50 → 40), cancel
+  restoring stock (40 → 50), the critical insufficient-stock error surfacing the exact backend
+  message with no bad navigation, and ACCOUNTS-role read-only enforcement across all 3 modules.
+  Screenshots reviewed, not just assertions; zero unexpected console errors.
