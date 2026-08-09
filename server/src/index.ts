@@ -12,7 +12,12 @@ const app = express();
 
 // Restricted to the deployed frontend's origin in production - defaults to
 // the local Vite dev server so `npm run dev` keeps working unconfigured.
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
+app.use(
+  cors({
+    origin: ["http://localhost:5173", "https://mini-erp-crm-seven-tau.vercel.app"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.get("/health", async (req, res) => {
