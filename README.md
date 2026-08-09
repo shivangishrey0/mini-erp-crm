@@ -387,3 +387,35 @@ Written instructions for deploying this project — not an already-deployed live
   `IN ... cancelled` rows) that the transaction logic was untouched by the styling pass, not
   just by trusting a status badge on screen. All screenshots reviewed directly, zero console
   errors. Test data cleaned up afterward.
+- **Second design pass — feedback, safety, and wayfinding**, still without an animation
+  library (plain CSS transitions, not JS spring physics):
+  - **Toast notifications** (`ToastContext`) confirm save/add-note/stock-adjust/confirm/cancel
+    actions instead of silently navigating away. CSS-only enter/exit: each toast mounts
+    hidden and flips visible on the next animation frame so the transition actually has
+    something to animate (a transition can't animate a value already at its target).
+  - **`ConfirmDialog` reserved for genuinely irreversible actions** — specifically, cancelling
+    a challan (a terminal state transition with no undo). Confirming a *draft* deliberately
+    does **not** get a dialog, since it isn't irreversible — a confirmed challan can still be
+    cancelled afterward to undo it. When cancelling a CONFIRMED challan, the dialog states
+    exactly how much stock will be restored, not a generic "are you sure?".
+  - **Skeleton loaders** (`TableSkeleton`) replace the plain spinner on all 3 list pages and
+    the Dashboard, shaped to match the actual table/card layout rather than a generic spinner.
+  - **`Breadcrumbs`** (`Dashboard / Customers / {name}`) on every detail/form/create page.
+  - **`EmptyState`** (icon + message) replaces plain "No X found" text in every empty table
+    and list.
+  - **Global `prefers-reduced-motion` handling**: one CSS media-query override in `index.css`
+    zeroes all animation/transition durations, rather than requiring a `motion-reduce:`
+    Tailwind variant on every individual animated element — catches the toast/dialog
+    transitions added here *and* the `active:scale-95` press feedback from the first design
+    pass, automatically, including anything animated added later.
+  - **Verified with a fresh Playwright pass** covering: toasts firing on every action,
+    the confirm dialog rendering with the correct dynamic message and both `Back` (dismisses,
+    no state change) and `Cancel Challan` (actually cancels) paths, skeleton loaders appearing
+    under an artificially slowed network request, breadcrumb text on every page type, and the
+    app functioning correctly under `page.emulateMedia({ reducedMotion: "reduce" })`. Caught
+    and worked around two more test-script timing races in the process (a skeleton `<table>`
+    matching the same selector as the real one before data loads; a screenshot racing the
+    dialog's opacity transition) — both diagnosed via computed-style checks rather than
+    guessing, confirmed as test-script issues rather than app bugs, and not "fixed" in the app
+    itself since there was nothing wrong there. All screenshots reviewed directly, zero
+    console errors, test data cleaned up afterward.
