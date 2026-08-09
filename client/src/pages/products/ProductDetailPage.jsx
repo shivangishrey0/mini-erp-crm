@@ -4,6 +4,8 @@ import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import Spinner from "../../components/Spinner";
 import ErrorState from "../../components/ErrorState";
+import Badge from "../../components/Badge";
+import { WarningIcon } from "../../components/icons";
 
 const CAN_WRITE_ROLES = ["ADMIN", "WAREHOUSE"];
 
@@ -67,21 +69,21 @@ export default function ProductDetailPage() {
 
   return (
     <div className="max-w-3xl">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">{product.name}</h1>
+      <div className="mb-5 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">{product.name}</h1>
         {canWrite && (
           <Link
             to={`/products/${id}/edit`}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 shadow-sm transition-transform duration-100 hover:bg-gray-100 active:scale-95"
           >
             Edit
           </Link>
         )}
       </div>
 
-      <dl className="mb-6 grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border border-gray-200 bg-white p-6 sm:grid-cols-2">
+      <dl className="mb-6 grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:grid-cols-2">
         <Detail label="SKU" value={product.sku} />
-        <Detail label="Category" value={product.category} />
+        <Detail label="Category" value={<Badge>{product.category}</Badge>} />
         <Detail label="Unit Price" value={`₹${product.unitPrice}`} />
         <Detail label="Location" value={product.location} />
         <Detail
@@ -90,7 +92,8 @@ export default function ProductDetailPage() {
             <>
               {product.currentStock}
               {product.isLowStock && (
-                <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                  <WarningIcon className="h-3 w-3" />
                   Low stock
                 </span>
               )}
@@ -101,15 +104,15 @@ export default function ProductDetailPage() {
       </dl>
 
       {canWrite && (
-        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6">
-          <h2 className="mb-3 text-lg font-semibold text-gray-900">Adjust Stock</h2>
+        <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-3 text-lg font-semibold tracking-tight text-gray-900">Adjust Stock</h2>
           <form onSubmit={handleAdjustStock} className="flex flex-wrap items-end gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700">Type</label>
               <select
                 value={type}
                 onChange={(event) => setType(event.target.value)}
-                className="mt-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                className="mt-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="IN">IN</option>
                 <option value="OUT">OUT</option>
@@ -123,7 +126,7 @@ export default function ProductDetailPage() {
                 required
                 value={quantity}
                 onChange={(event) => setQuantity(event.target.value)}
-                className="mt-1 w-28 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className="mt-1 w-28 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
             <div className="flex-1">
@@ -133,43 +136,43 @@ export default function ProductDetailPage() {
                 required
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
-                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
               />
             </div>
             <button
               type="submit"
               disabled={adjusting}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:bg-indigo-700 active:scale-95 disabled:opacity-50"
             >
               {adjusting ? "Saving..." : "Apply"}
             </button>
           </form>
-          {adjustError && <p className="mt-2 text-sm text-red-600">{adjustError}</p>}
+          {adjustError && <p className="mt-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{adjustError}</p>}
         </div>
       )}
 
-      <h2 className="mb-2 text-lg font-semibold text-gray-900">Movement History</h2>
-      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+      <h2 className="mb-2 text-lg font-semibold tracking-tight text-gray-900">Movement History</h2>
+      <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Type</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Quantity</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">Reason</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">By</th>
-              <th className="px-4 py-2 text-left font-medium text-gray-500">When</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Type</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Quantity</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Reason</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">By</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">When</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {movements.map((movement) => (
-              <tr key={movement.id}>
-                <td className="px-4 py-2">
-                  <span className={movement.type === "IN" ? "text-green-700" : "text-red-700"}>{movement.type}</span>
+            {movements.map((movement, idx) => (
+              <tr key={movement.id} className={idx % 2 === 1 ? "bg-gray-50/50" : undefined}>
+                <td className="px-4 py-2.5">
+                  <Badge variant={movement.type === "IN" ? "green" : "red"}>{movement.type}</Badge>
                 </td>
-                <td className="px-4 py-2 text-gray-700">{movement.quantity}</td>
-                <td className="px-4 py-2 text-gray-700">{movement.reason}</td>
-                <td className="px-4 py-2 text-gray-700">{movement.createdBy.name}</td>
-                <td className="px-4 py-2 text-gray-500">{new Date(movement.createdAt).toLocaleString()}</td>
+                <td className="px-4 py-2.5 text-gray-700">{movement.quantity}</td>
+                <td className="px-4 py-2.5 text-gray-700">{movement.reason}</td>
+                <td className="px-4 py-2.5 text-gray-700">{movement.createdBy.name}</td>
+                <td className="px-4 py-2.5 text-gray-500">{new Date(movement.createdAt).toLocaleString()}</td>
               </tr>
             ))}
             {movements.length === 0 && (
@@ -189,8 +192,8 @@ export default function ProductDetailPage() {
 function Detail({ label, value }) {
   return (
     <div>
-      <dt className="text-xs font-medium text-gray-500">{label}</dt>
-      <dd className="text-sm text-gray-900">{value}</dd>
+      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</dt>
+      <dd className="mt-0.5 text-sm text-gray-900">{value}</dd>
     </div>
   );
 }

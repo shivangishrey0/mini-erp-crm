@@ -4,6 +4,7 @@ import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import Spinner from "../../components/Spinner";
 import ErrorState from "../../components/ErrorState";
+import Badge, { CUSTOMER_STATUS_VARIANT } from "../../components/Badge";
 
 const CAN_WRITE_ROLES = ["ADMIN", "SALES"];
 
@@ -57,25 +58,25 @@ export default function CustomerDetailPage() {
 
   return (
     <div className="max-w-3xl">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">{customer.name}</h1>
+      <div className="mb-5 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">{customer.name}</h1>
         {canWrite && (
           <Link
             to={`/customers/${id}/edit`}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 shadow-sm transition-transform duration-100 hover:bg-gray-100 active:scale-95"
           >
             Edit
           </Link>
         )}
       </div>
 
-      <dl className="mb-6 grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border border-gray-200 bg-white p-6 sm:grid-cols-2">
+      <dl className="mb-6 grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:grid-cols-2">
         <Detail label="Business" value={customer.businessName} />
         <Detail label="Mobile" value={customer.mobile} />
         <Detail label="Email" value={customer.email || "—"} />
         <Detail label="GST Number" value={customer.gstNumber || "—"} />
-        <Detail label="Type" value={customer.type} />
-        <Detail label="Status" value={customer.status} />
+        <Detail label="Type" value={<Badge>{customer.type}</Badge>} />
+        <Detail label="Status" value={<Badge variant={CUSTOMER_STATUS_VARIANT[customer.status]}>{customer.status}</Badge>} />
         <Detail label="Address" value={customer.address} />
         <Detail
           label="Follow-up Date"
@@ -84,7 +85,7 @@ export default function CustomerDetailPage() {
         {customer.notes && <Detail label="Notes" value={customer.notes} full />}
       </dl>
 
-      <h2 className="mb-2 text-lg font-semibold text-gray-900">Follow-up Notes</h2>
+      <h2 className="mb-2 text-lg font-semibold tracking-tight text-gray-900">Follow-up Notes</h2>
 
       {canWrite && (
         <form onSubmit={handleAddNote} className="mb-4 flex gap-2">
@@ -94,22 +95,22 @@ export default function CustomerDetailPage() {
             value={note}
             onChange={(event) => setNote(event.target.value)}
             placeholder="Add a follow-up note..."
-            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
           <button
             type="submit"
             disabled={addingNote}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:bg-indigo-700 active:scale-95 disabled:opacity-50"
           >
             Add
           </button>
         </form>
       )}
-      {noteError && <p className="mb-4 text-sm text-red-600">{noteError}</p>}
+      {noteError && <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{noteError}</p>}
 
       <ul className="space-y-2">
         {customer.followUps.map((followUp) => (
-          <li key={followUp.id} className="rounded-lg border border-gray-200 bg-white p-3 text-sm">
+          <li key={followUp.id} className="rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-sm">
             <p className="text-gray-900">{followUp.note}</p>
             <p className="mt-1 text-xs text-gray-500">
               {followUp.createdBy.name} · {new Date(followUp.createdAt).toLocaleString()}
@@ -125,8 +126,8 @@ export default function CustomerDetailPage() {
 function Detail({ label, value, full = false }) {
   return (
     <div className={full ? "sm:col-span-2" : undefined}>
-      <dt className="text-xs font-medium text-gray-500">{label}</dt>
-      <dd className="text-sm text-gray-900">{value}</dd>
+      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</dt>
+      <dd className="mt-0.5 text-sm text-gray-900">{value}</dd>
     </div>
   );
 }

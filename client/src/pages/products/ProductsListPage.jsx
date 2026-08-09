@@ -6,6 +6,8 @@ import Pagination from "../../components/Pagination";
 import Spinner from "../../components/Spinner";
 import ErrorState from "../../components/ErrorState";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
+import Badge from "../../components/Badge";
+import { PlusIcon, SearchIcon, WarningIcon } from "../../components/icons";
 
 const CAN_WRITE_ROLES = ["ADMIN", "WAREHOUSE"];
 
@@ -44,29 +46,33 @@ export default function ProductsListPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">Products</h1>
+      <div className="mb-5 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Products</h1>
         {CAN_WRITE_ROLES.includes(user?.role) && (
           <Link
             to="/products/new"
-            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:bg-indigo-700 active:scale-95"
           >
+            <PlusIcon className="h-4 w-4" />
             Add Product
           </Link>
         )}
       </div>
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
-        <input
-          type="text"
-          placeholder="Search by name, SKU, or category..."
-          value={search}
-          onChange={(event) => {
-            setPage(1);
-            setSearch(event.target.value);
-          }}
-          className="w-full max-w-sm rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-        />
+        <div className="relative max-w-sm flex-1">
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search by name, SKU, or category..."
+            value={search}
+            onChange={(event) => {
+              setPage(1);
+              setSearch(event.target.value);
+            }}
+            className="w-full rounded-md border border-gray-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+        </div>
         <label className="flex items-center gap-2 text-sm text-gray-700">
           <input
             type="checkbox"
@@ -86,37 +92,46 @@ export default function ProductsListPage() {
       )}
 
       {!loading && !error && (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Name</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">SKU</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Category</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Price</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Stock</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Name</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">SKU</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Category</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Price</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Stock</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {data.data.map((product) => (
+              {data.data.map((product, idx) => (
                 <tr
                   key={product.id}
-                  className={product.isLowStock ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-50"}
+                  className={
+                    product.isLowStock
+                      ? "bg-red-50 hover:bg-red-100"
+                      : idx % 2 === 1
+                        ? "bg-gray-50/50 hover:bg-gray-100/70"
+                        : "hover:bg-gray-50"
+                  }
                 >
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2.5">
                     <Link to={`/products/${product.id}`} className="font-medium text-indigo-600 hover:underline">
                       {product.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-2 text-gray-700">{product.sku}</td>
-                  <td className="px-4 py-2 text-gray-700">{product.category}</td>
-                  <td className="px-4 py-2 text-gray-700">₹{product.unitPrice}</td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2.5 text-gray-700">{product.sku}</td>
+                  <td className="px-4 py-2.5">
+                    <Badge>{product.category}</Badge>
+                  </td>
+                  <td className="px-4 py-2.5 text-gray-700">₹{product.unitPrice}</td>
+                  <td className="px-4 py-2.5">
                     <span className={product.isLowStock ? "font-medium text-red-600" : "text-gray-700"}>
                       {product.currentStock}
                     </span>
                     {product.isLowStock && (
-                      <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                      <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                        <WarningIcon className="h-3 w-3" />
                         Low stock
                       </span>
                     )}

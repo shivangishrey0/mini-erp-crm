@@ -6,6 +6,8 @@ import Pagination from "../../components/Pagination";
 import Spinner from "../../components/Spinner";
 import ErrorState from "../../components/ErrorState";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
+import Badge, { CUSTOMER_STATUS_VARIANT } from "../../components/Badge";
+import { PlusIcon, SearchIcon } from "../../components/icons";
 
 const CAN_WRITE_ROLES = ["ADMIN", "SALES"];
 
@@ -43,28 +45,32 @@ export default function CustomersListPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">Customers</h1>
+      <div className="mb-5 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Customers</h1>
         {CAN_WRITE_ROLES.includes(user?.role) && (
           <Link
             to="/customers/new"
-            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:bg-indigo-700 active:scale-95"
           >
+            <PlusIcon className="h-4 w-4" />
             Add Customer
           </Link>
         )}
       </div>
 
-      <input
-        type="text"
-        placeholder="Search by name, business, mobile, or email..."
-        value={search}
-        onChange={(event) => {
-          setPage(1);
-          setSearch(event.target.value);
-        }}
-        className="mb-4 w-full max-w-sm rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-      />
+      <div className="relative mb-4 max-w-sm">
+        <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          type="text"
+          placeholder="Search by name, business, mobile, or email..."
+          value={search}
+          onChange={(event) => {
+            setPage(1);
+            setSearch(event.target.value);
+          }}
+          className="w-full rounded-md border border-gray-300 py-2 pl-9 pr-3 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        />
+      </div>
 
       {loading && <Spinner />}
       {!loading && error && (
@@ -72,29 +78,33 @@ export default function CustomersListPage() {
       )}
 
       {!loading && !error && (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Name</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Business</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Mobile</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Type</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Status</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Name</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Business</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Mobile</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Type</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {data.data.map((customer) => (
-                <tr key={customer.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2">
+              {data.data.map((customer, idx) => (
+                <tr key={customer.id} className={idx % 2 === 1 ? "bg-gray-50/50 hover:bg-gray-100/70" : "hover:bg-gray-50"}>
+                  <td className="px-4 py-2.5">
                     <Link to={`/customers/${customer.id}`} className="font-medium text-indigo-600 hover:underline">
                       {customer.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-2 text-gray-700">{customer.businessName}</td>
-                  <td className="px-4 py-2 text-gray-700">{customer.mobile}</td>
-                  <td className="px-4 py-2 text-gray-700">{customer.type}</td>
-                  <td className="px-4 py-2 text-gray-700">{customer.status}</td>
+                  <td className="px-4 py-2.5 text-gray-700">{customer.businessName}</td>
+                  <td className="px-4 py-2.5 text-gray-700">{customer.mobile}</td>
+                  <td className="px-4 py-2.5">
+                    <Badge>{customer.type}</Badge>
+                  </td>
+                  <td className="px-4 py-2.5">
+                    <Badge variant={CUSTOMER_STATUS_VARIANT[customer.status]}>{customer.status}</Badge>
+                  </td>
                 </tr>
               ))}
               {data.data.length === 0 && (

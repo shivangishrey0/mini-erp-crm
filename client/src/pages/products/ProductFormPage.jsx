@@ -63,9 +63,9 @@ export default function ProductFormPage() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="mb-4 text-xl font-semibold text-gray-900">{isEdit ? "Edit Product" : "Add Product"}</h1>
+      <h1 className="mb-5 text-2xl font-bold tracking-tight text-gray-900">{isEdit ? "Edit Product" : "Add Product"}</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
+      <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Name" required value={form.name} onChange={(v) => updateField("name", v)} />
           <Field label="SKU" required value={form.sku} onChange={(v) => updateField("sku", v)} />
@@ -93,12 +93,12 @@ export default function ProductFormPage() {
           </p>
         )}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
         <button
           type="submit"
           disabled={saving}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:bg-indigo-700 active:scale-95 disabled:opacity-50"
         >
           {saving ? "Saving..." : "Save"}
         </button>
