@@ -2,15 +2,19 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../context/ToastContext";
 import Badge, { CHALLAN_STATUS_VARIANT } from "../../components/Badge";
 import Spinner from "../../components/Spinner";
 import ErrorState from "../../components/ErrorState";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import ConfirmDialog from "../../components/ConfirmDialog";
 
 const CAN_WRITE_ROLES = ["ADMIN", "SALES"];
 
 export default function ChallanDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const canWrite = CAN_WRITE_ROLES.includes(user?.role);
 
   const [challan, setChallan] = useState(null);
@@ -18,6 +22,7 @@ export default function ChallanDetailPage() {
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [acting, setActing] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
   function loadChallan() {
     return api
@@ -42,6 +47,7 @@ export default function ChallanDetailPage() {
     setActionError("");
     try {
       await api.post(`/challans/${id}/confirm`);
+      showToast("Challan confirmed");
       await loadChallan();
     } catch (err) {
       setActionError(err.response?.data?.error ?? "Failed to confirm challan.");
@@ -51,10 +57,12 @@ export default function ChallanDetailPage() {
   }
 
   async function handleCancel() {
+    setCancelDialogOpen(false);
     setActing(true);
     setActionError("");
     try {
       await api.post(`/challans/${id}/cancel`);
+      showToast("Challan cancelled");
       await loadChallan();
     } catch (err) {
       setActionError(err.response?.data?.error ?? "Failed to cancel challan.");
@@ -71,6 +79,9 @@ export default function ChallanDetailPage() {
 
   return (
     <div className="max-w-3xl">
+      <Breadcrumbs
+        items={[{ label: "Dashboard", to: "/" }, { label: "Challans", to: "/challans" }, { label: challan.challanNumber }]}
+      />
       <div className="mb-5 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">{challan.challanNumber}</h1>
@@ -91,7 +102,7 @@ export default function ChallanDetailPage() {
             )}
             {challan.status !== "CANCELLED" && (
               <button
-                onClick={handleCancel}
+                onClick={() => setCancelDialogOpen(true)}
                 disabled={acting}
                 className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition-transform duration-100 hover:bg-red-50 active:scale-95 disabled:opacity-50"
               >
@@ -101,6 +112,20 @@ export default function ChallanDetailPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={cancelDialogOpen}
+        title="Cancel this challan?"
+        message={
+          challan.status === "CONFIRMED"
+            ? `This will restore ${challan.totalQuantity} unit(s) of stock and can't be undone.`
+            : "This can't be undone."
+        }
+        confirmLabel="Cancel Challan"
+        danger
+        onConfirm={handleCancel}
+        onCancel={() => setCancelDialogOpen(false)}
+      />
 
       {actionError && (
         <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p>

@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../lib/api";
 import { useAuth } from "../context/AuthContext";
-import Spinner from "../components/Spinner";
 import ErrorState from "../components/ErrorState";
+import EmptyState from "../components/EmptyState";
+import TableSkeleton from "../components/TableSkeleton";
 import Badge, { CHALLAN_STATUS_VARIANT } from "../components/Badge";
 import { CustomersIcon, ProductsIcon, ChallansIcon, WarningIcon } from "../components/icons";
 
@@ -43,8 +44,26 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (loading) return <Spinner />;
   if (error) return <ErrorState message={error} onRetry={load} />;
+
+  if (loading) {
+    return (
+      <div>
+        <div className="h-8 w-64 animate-pulse rounded bg-gray-200" />
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+              <div className="mb-3 h-9 w-9 animate-pulse rounded-lg bg-gray-200" />
+              <div className="h-7 w-10 animate-pulse rounded bg-gray-200" />
+              <div className="mt-2 h-4 w-20 animate-pulse rounded bg-gray-200" />
+            </div>
+          ))}
+        </div>
+        <div className="mb-2 mt-8 h-6 w-40 animate-pulse rounded bg-gray-200" />
+        <TableSkeleton rows={3} columns={4} />
+      </div>
+    );
+  }
 
   const cards = [
     { label: "Customers", value: stats.customers, Icon: CustomersIcon, to: "/customers", accent: "bg-indigo-50 text-indigo-600" },
@@ -104,8 +123,8 @@ export default function DashboardPage() {
             ))}
             {recentChallans.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-gray-500">
-                  No challans yet.
+                <td colSpan={4}>
+                  <EmptyState icon={ChallansIcon} message="No challans yet." />
                 </td>
               </tr>
             )}

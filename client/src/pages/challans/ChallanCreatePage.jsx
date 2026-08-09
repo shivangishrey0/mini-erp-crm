@@ -2,9 +2,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../lib/api";
 import Spinner from "../../components/Spinner";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import { useToast } from "../../context/ToastContext";
 
 export default function ChallanCreatePage() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
@@ -60,6 +63,7 @@ export default function ChallanCreatePage() {
 
     try {
       const res = await api.post("/challans", payload);
+      showToast(status === "CONFIRMED" ? "Challan created and confirmed" : "Challan saved as draft");
       navigate(`/challans/${res.data.challan.id}`);
     } catch (err) {
       setError(err.response?.data?.error ?? "Failed to save challan.");
@@ -72,6 +76,7 @@ export default function ChallanCreatePage() {
 
   return (
     <div className="max-w-3xl">
+      <Breadcrumbs items={[{ label: "Dashboard", to: "/" }, { label: "Challans", to: "/challans" }, { label: "New" }]} />
       <h1 className="mb-5 text-2xl font-bold tracking-tight text-gray-900">Create Challan</h1>
 
       {/* Plain onSubmit preventDefault, not a real submit handler - there are
