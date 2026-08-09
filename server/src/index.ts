@@ -10,7 +10,9 @@ import challanRoutes from "./routes/challan.routes";
 
 const app = express();
 
-app.use(cors());
+// Restricted to the deployed frontend's origin in production - defaults to
+// the local Vite dev server so `npm run dev` keeps working unconfigured.
+app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
 app.use(express.json());
 
 app.get("/health", async (req, res) => {

@@ -103,6 +103,7 @@ to `/login`.
 | `DIRECT_URL`   | Supabase direct connection (port 5432) — used by Prisma Migrate     |
 | `JWT_SECRET`   | Secret used to sign/verify JWTs                                     |
 | `PORT`         | Port the Express server listens on                                  |
+| `CLIENT_URL`   | Deployed frontend origin — CORS only allows requests from this. Defaults to `http://localhost:5173` if unset |
 
 Prisma 6 reads these directly from `.env` (no `prisma.config.ts` needed).
 
@@ -176,8 +177,10 @@ Written instructions for deploying this project — not an already-deployed live
 1. Push this repo to GitHub; point the host at `server/` as the root directory.
 2. Build command: `npm install && npm run build`
 3. Start command: `npm run start`
-4. Environment variables: `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET` (most hosts inject `PORT`
-   automatically — the app already reads `process.env.PORT`).
+4. Environment variables: `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET` (a freshly generated one,
+   never the value from local `.env`), `CLIENT_URL` (leave as the localhost default for now —
+   comes back in step 3 below once the frontend has a URL). Most hosts inject `PORT`
+   automatically — the app already reads `process.env.PORT`.
 5. Add a release/deploy-time command: `npx prisma migrate deploy` — applies committed
    migrations without generating new ones (unlike `migrate dev`, which is dev-only).
 6. Run `npx prisma db seed` once manually via the host's shell/console if you want the same 4
@@ -189,11 +192,14 @@ Written instructions for deploying this project — not an already-deployed live
 2. Build command: `npm run build`; output directory: `dist`
 3. Environment variable: `VITE_API_URL` = the deployed backend's URL from above
 4. Vite bakes `VITE_API_URL` in at build time — redeploy the frontend if the backend URL changes
+5. `client/vercel.json` rewrites all paths to `index.html` so React Router's client-side routes
+   (e.g. `/customers/123`) don't 404 on a hard refresh — Vercel picks this up automatically.
 
 ### Before actually going live
 
-- Lock CORS down to the deployed frontend's exact origin — see Known Limitations below, the
-  backend currently accepts requests from any origin.
+- **Go back and set `CLIENT_URL`** on the backend host to the frontend's actual deployed URL
+  (from the step above), then redeploy/restart the backend — CORS only allows that exact origin
+  by default (see `server/src/index.ts`), so this step isn't optional once both sides are live.
 - Use a freshly generated `JWT_SECRET` in the hosting platform's secret store, never the one
   from local `.env`.
 - `DATABASE_URL`/`DIRECT_URL` already point at Supabase, so no schema changes are needed to go
@@ -211,9 +217,9 @@ Written instructions for deploying this project — not an already-deployed live
   that gap at higher scale.
 - **Low-stock filtering runs in application code, not the database** — Prisma can't compare two
   columns of the same row (`currentStock < minStockAlert`) in a `where` clause without raw SQL.
-- **CORS is fully open** (`app.use(cors())`, no origin restriction) — fine for local development
-  and this case study, but should be locked to the deployed frontend's specific origin for any
-  real production use (see Deployment above).
+- **CORS allows exactly one origin** (`CLIENT_URL`, defaulting to the local Vite dev server) —
+  fine for this project's single-frontend setup, but would need a small allow-list instead of a
+  single string if multiple frontends ever needed access.
 - **No refresh-token flow.** The JWT simply expires after 8h and the user has to log in again;
   there's no silent re-authentication.
 - **No password-reset / forgot-password flow.**
