@@ -5,6 +5,7 @@ import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { prisma } from "./lib/prisma";
 import authRoutes from "./routes/auth.routes";
 import customerRoutes from "./routes/customer.routes";
+import productRoutes from "./routes/product.routes";
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.get("/health", async (req, res) => {
 
 app.use("/auth", authRoutes);
 app.use("/customers", customerRoutes);
+app.use("/products", productRoutes);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

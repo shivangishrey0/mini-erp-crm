@@ -67,6 +67,12 @@ this in production).
 | POST   | `/customers`      | ADMIN, SALES      | Create a customer |
 | PATCH  | `/customers/:id`  | ADMIN, SALES      | Partial update (e.g. just `status`) |
 | POST   | `/customers/:id/follow-ups` | ADMIN, SALES | Add a follow-up note |
+| GET    | `/products`       | Bearer token (any role) | List, paginated. Query: `page`, `pageSize`, `search` (name/sku/category), `category`, `lowStock` |
+| GET    | `/products/:id`   | Bearer token (any role) | Detail, includes computed `isLowStock` flag |
+| GET    | `/products/:id/movements` | Bearer token (any role) | Paginated stock movement history |
+| POST   | `/products`       | ADMIN, WAREHOUSE  | Create (always starts at `currentStock: 0`) |
+| PATCH  | `/products/:id`   | ADMIN, WAREHOUSE  | Edit catalog fields — never `currentStock` |
+| POST   | `/products/:id/stock-movements` | ADMIN, WAREHOUSE | Manual IN/OUT adjustment with a reason; 400 if OUT exceeds current stock |
 
 ## Database Schema
 
@@ -88,7 +94,7 @@ Defined in `server/prisma/schema.prisma`. Core models:
 - [x] **Task 2** — Express app skeleton, error handling, health check, Prisma client singleton
 - [x] **Task 3** — Auth (seed script, login, JWT middleware, role guards)
 - [x] **Task 4** — Customer CRM APIs
-- [ ] Task 5 — Product & stock movement APIs
+- [x] **Task 5** — Product & stock movement APIs
 - [ ] Task 6 — Challan APIs (draft/confirm/cancel, stock transaction logic)
 - [ ] Task 7 — Frontend setup
 - [ ] Task 8 — Frontend pages
@@ -102,8 +108,23 @@ Defined in `server/prisma/schema.prisma`. Core models:
   schema's `datasource` block.
 - **CommonJS, not ESM** — `tsconfig.json` targets CommonJS/`node16` module resolution for
   reliable `ts-node-dev` support in local development.
-- **Stock-never-negative is an application-layer rule** (enforced inside a Prisma
-  `$transaction` in the challan-confirm endpoint, Task 6), not a database `CHECK` constraint.
+- **Stock-never-negative is an application-layer rule**, enforced inside a Prisma
+  `$transaction` in `POST /products/:id/stock-movements` (and reused by the Task 6
+  challan-confirm endpoint), not a database `CHECK` constraint.
+- **`currentStock` is never directly editable** — `PATCH /products/:id` excludes it entirely;
+  the only way to change it is the stock-movements endpoint, so the `StockMovement` audit log
+  has zero exceptions (even a new product's first stock entry is a logged "Initial stock" IN).
+- **Low-stock filtering (`?lowStock=true`) happens in application code**, not the database —
+  Prisma can't compare two columns of the same row (`currentStock < minStockAlert`) in a
+  `where` clause without raw SQL. Fine at this project's scale; would move to raw SQL if the
+  product catalog grew large.
+- **Bug found and fixed during Task 5 testing:** `updateProductSchema` was originally
+  `createProductSchema.partial()`. Zod's `.default()` survives `.partial()` — a field with
+  both silently gets reset to its default on any `PATCH` that omits it, since `.partial()`
+  only adds `.optional()`, it doesn't remove the existing default. This meant every partial
+  product update was silently zeroing out `minStockAlert` unless the caller explicitly
+  resent it. Fixed by splitting field definitions so `.default(0)` is applied only in
+  `createProductSchema`, never in the shared fields `updateProductSchema` is built from.
 - **`Customer.mobile` is not unique** — multiple contacts at the same business may share a
   phone number.
 - **TypeScript pinned to 5.9.3, not 7.x** — `ts-node-dev`/`ts-node` (the dev-time TS runner)
@@ -129,3 +150,6 @@ Defined in `server/prisma/schema.prisma`. Core models:
 - **Customer read access is open to any authenticated role; writes are ADMIN + SALES only** —
   CRM is a sales function, but ACCOUNTS/WAREHOUSE still need to view customer data (GST info
   for invoicing, customer name on challans).
+- **Product read access is open to any authenticated role; writes are ADMIN + WAREHOUSE only** —
+  same pattern as customers: inventory is a warehouse function, but SALES/ACCOUNTS still need
+  to see stock levels.
