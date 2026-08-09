@@ -116,32 +116,6 @@
               ]
             }
           }
-        },
-        {
-          "name": "Admin Only (roleGuard smoke test)",
-          "request": {
-            "method": "GET",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}"
-                }
-              ]
-            },
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/auth/admin-only",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "admin-only"
-              ]
-            }
-          }
         }
       ]
     },
