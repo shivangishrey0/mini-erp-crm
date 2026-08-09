@@ -11,7 +11,7 @@ internal staff roles: ADMIN, SALES, WAREHOUSE, ACCOUNTS.
 - **Database:** PostgreSQL (Supabase)
 - **Auth:** JWT (`jsonwebtoken`, `bcryptjs`), role-based access control
 - **Validation:** Zod
-- **Frontend:** React (plain JS) + Vite, Tailwind CSS v4, react-router-dom, axios
+- **Frontend:** React (plain JS) + Vite, Tailwind CSS v4, react-router-dom, axios, Framer Motion, lucide-react
 
 ## Project Structure
 
@@ -419,3 +419,50 @@ Written instructions for deploying this project — not an already-deployed live
     guessing, confirmed as test-script issues rather than app bugs, and not "fixed" in the app
     itself since there was nothing wrong there. All screenshots reviewed directly, zero
     console errors, test data cleaned up afterward.
+- **Third design pass — Framer Motion + lucide-react added, reversing the earlier
+  "no animation library" decision.** Checked the actual case study PDF (not just the
+  paraphrased brief given at project start) before deciding: it requires "React, HTML, CSS,
+  JavaScript/TypeScript" and "clean admin-style UI," with no dependency-free constraint
+  anywhere. The earlier "plain JS, no libraries" framing came from the user's own paraphrase,
+  not the source document, so it was safe to add two focused, lightweight dependencies
+  (~40kb gzipped combined) rather than hand-rolling worse approximations of what
+  Aceternity/Magic UI/shadcn-style components actually use.
+  - **`icons.jsx` now re-exports lucide-react icons** under the exact names already used
+    everywhere (`CustomersIcon`, `ProductsIcon`, etc.) — swapped the implementation without
+    touching any of the ~15 call sites.
+  - **`MotionConfig reducedMotion="user"`** wraps the whole app once, so every Framer Motion
+    animation added in this pass automatically respects `prefers-reduced-motion`, the same
+    way the CSS-level override already covered plain CSS transitions.
+  - **Sidebar navigation has a shared-layout "magic move" active pill** (`layoutId`) that
+    slides smoothly between nav items on click, instead of the background color just
+    swapping. Route changes fade/slide via `AnimatedOutlet` (`useOutlet()` + `AnimatePresence`
+    keyed by `location.pathname` — `<Outlet />` alone doesn't reliably trigger exit
+    animations on navigation).
+  - **Toast and `ConfirmDialog` rebuilt on `AnimatePresence`** with real spring physics,
+    replacing the previous pass's manual mount/leaving CSS state machine.
+  - **`AnimatedCounter`** count-up on dashboard stat numbers (skips the animation outright
+    under reduced motion — no point animating toward a value nobody wants to watch move).
+  - **`SpotlightCard`** — cursor-following radial-gradient glow (Aceternity "Card Spotlight"
+    style), applied to the dashboard stat cards and all 3 detail-page info cards. Pure
+    pointer-position CSS, not gated behind reduced-motion since it tracks real input rather
+    than auto-playing.
+  - **Gradient CTAs**: all 10 primary action buttons across the app moved from flat
+    `bg-indigo-600` to a two-stop gradient, matching the stat-card icon gradients and the
+    brand mark on both the sidebar and login page — one consistent visual language instead of
+    matching-but-separate flat colors.
+  - **Table-row stagger reveals** via a shared `src/lib/motionVariants.js`
+    (`staggerContainer`/`staggerItem`) — extracted once it was about to be copy-pasted a
+    third time, used by the Dashboard's recent-challans table and all 3 list pages.
+  - **Login page** gets two slow-drifting soft gradient blobs behind the card (18s/22s loops,
+    respects reduced motion via `MotionConfig`) — the one place in the app that gets a
+    decorative "moment," deliberately not repeated elsewhere to avoid the "novelty for its
+    own sake" pitfall the Apple design guidance explicitly warns against.
+  - **Deliberately did not add**: drag-reorder tables, rubber-band scroll physics,
+    pointer-capture gesture tracking, haptics/sound, or a command palette — all real patterns
+    from the referenced sites, but out of scope for an admin CRUD app with no drag/gesture
+    interactions to begin with. Adding them would be decoration without a task to serve.
+  - **Verified with a full Playwright pass**: every list/detail page screenshot reviewed
+    directly (not just asserted), plus a complete functional smoke test — create customer,
+    create product, adjust stock, create-and-confirm a challan, cancel it through the new
+    confirm dialog — confirming the business logic is byte-for-byte unchanged post-redesign.
+    Zero console errors. Sample/test data cleaned back to the original seed counts afterward.
