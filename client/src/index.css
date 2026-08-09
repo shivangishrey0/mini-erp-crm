@@ -1,1 +1,15 @@
 @import "tailwindcss";
+
+/* Global kill-switch: catches every transition/animation (including
+   active:scale-95 press feedback, toast/dialog transitions, skeleton
+   pulses) rather than requiring a motion-reduce: variant on each one. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

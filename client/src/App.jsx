@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
@@ -17,34 +18,36 @@ import ChallanDetailPage from "./pages/challans/ChallanDetailPage";
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            element={
-              <ProtectedRoute>
-                <Layout />
-              </ProtectedRoute>
-            }
-          >
-            <Route path="/" element={<DashboardPage />} />
+      <ToastProvider>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              element={
+                <ProtectedRoute>
+                  <Layout />
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/" element={<DashboardPage />} />
 
-            <Route path="/customers" element={<CustomersListPage />} />
-            <Route path="/customers/new" element={<CustomerFormPage />} />
-            <Route path="/customers/:id" element={<CustomerDetailPage />} />
-            <Route path="/customers/:id/edit" element={<CustomerFormPage />} />
+              <Route path="/customers" element={<CustomersListPage />} />
+              <Route path="/customers/new" element={<CustomerFormPage />} />
+              <Route path="/customers/:id" element={<CustomerDetailPage />} />
+              <Route path="/customers/:id/edit" element={<CustomerFormPage />} />
 
-            <Route path="/products" element={<ProductsListPage />} />
-            <Route path="/products/new" element={<ProductFormPage />} />
-            <Route path="/products/:id" element={<ProductDetailPage />} />
-            <Route path="/products/:id/edit" element={<ProductFormPage />} />
+              <Route path="/products" element={<ProductsListPage />} />
+              <Route path="/products/new" element={<ProductFormPage />} />
+              <Route path="/products/:id" element={<ProductDetailPage />} />
+              <Route path="/products/:id/edit" element={<ProductFormPage />} />
 
-            <Route path="/challans" element={<ChallansListPage />} />
-            <Route path="/challans/new" element={<ChallanCreatePage />} />
-            <Route path="/challans/:id" element={<ChallanDetailPage />} />
-          </Route>
-        </Routes>
-      </AuthProvider>
+              <Route path="/challans" element={<ChallansListPage />} />
+              <Route path="/challans/new" element={<ChallanCreatePage />} />
+              <Route path="/challans/:id" element={<ChallanDetailPage />} />
+            </Route>
+          </Routes>
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   );
 }
