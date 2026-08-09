@@ -3,11 +3,12 @@ import { Link } from "react-router-dom";
 import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import Pagination from "../../components/Pagination";
-import Spinner from "../../components/Spinner";
+import TableSkeleton from "../../components/TableSkeleton";
 import ErrorState from "../../components/ErrorState";
+import EmptyState from "../../components/EmptyState";
 import useDebouncedValue from "../../hooks/useDebouncedValue";
 import Badge, { CUSTOMER_STATUS_VARIANT } from "../../components/Badge";
-import { PlusIcon, SearchIcon } from "../../components/icons";
+import { PlusIcon, SearchIcon, CustomersIcon } from "../../components/icons";
 
 const CAN_WRITE_ROLES = ["ADMIN", "SALES"];
 
@@ -72,7 +73,7 @@ export default function CustomersListPage() {
         />
       </div>
 
-      {loading && <Spinner />}
+      {loading && <TableSkeleton columns={5} />}
       {!loading && error && (
         <ErrorState message={error} onRetry={() => setReloadCounter((c) => c + 1)} />
       )}
@@ -109,8 +110,8 @@ export default function CustomersListPage() {
               ))}
               {data.data.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
-                    No customers found.
+                  <td colSpan={5}>
+                    <EmptyState icon={CustomersIcon} message="No customers found." />
                   </td>
                 </tr>
               )}

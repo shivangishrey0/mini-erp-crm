@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../lib/api";
 import Spinner from "../../components/Spinner";
+import Breadcrumbs from "../../components/Breadcrumbs";
+import { useToast } from "../../context/ToastContext";
 
 const EMPTY_FORM = {
   name: "",
@@ -20,6 +22,7 @@ export default function CustomerFormPage() {
   const { id } = useParams();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const [form, setForm] = useState(EMPTY_FORM);
   const [loading, setLoading] = useState(isEdit);
@@ -68,9 +71,11 @@ export default function CustomerFormPage() {
     try {
       if (isEdit) {
         await api.patch(`/customers/${id}`, payload);
+        showToast("Customer updated");
         navigate(`/customers/${id}`);
       } else {
         const res = await api.post("/customers", payload);
+        showToast("Customer created");
         navigate(`/customers/${res.data.customer.id}`);
       }
     } catch (err) {
@@ -84,6 +89,13 @@ export default function CustomerFormPage() {
 
   return (
     <div className="max-w-2xl">
+      <Breadcrumbs
+        items={[
+          { label: "Dashboard", to: "/" },
+          { label: "Customers", to: "/customers" },
+          { label: isEdit ? "Edit" : "New" },
+        ]}
+      />
       <h1 className="mb-5 text-2xl font-bold tracking-tight text-gray-900">{isEdit ? "Edit Customer" : "Add Customer"}</h1>
 
       <form onSubmit={handleSubmit} className="space-y-4 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">

@@ -4,13 +4,17 @@ import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import Spinner from "../../components/Spinner";
 import ErrorState from "../../components/ErrorState";
+import EmptyState from "../../components/EmptyState";
+import Breadcrumbs from "../../components/Breadcrumbs";
 import Badge, { CUSTOMER_STATUS_VARIANT } from "../../components/Badge";
+import { useToast } from "../../context/ToastContext";
 
 const CAN_WRITE_ROLES = ["ADMIN", "SALES"];
 
 export default function CustomerDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -42,6 +46,7 @@ export default function CustomerDetailPage() {
     try {
       await api.post(`/customers/${id}/follow-ups`, { note });
       setNote("");
+      showToast("Follow-up note added");
       await loadCustomer();
     } catch (err) {
       setNoteError(err.response?.data?.error ?? "Failed to add note.");
@@ -58,6 +63,9 @@ export default function CustomerDetailPage() {
 
   return (
     <div className="max-w-3xl">
+      <Breadcrumbs
+        items={[{ label: "Dashboard", to: "/" }, { label: "Customers", to: "/customers" }, { label: customer.name }]}
+      />
       <div className="mb-5 flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">{customer.name}</h1>
         {canWrite && (
@@ -117,7 +125,7 @@ export default function CustomerDetailPage() {
             </p>
           </li>
         ))}
-        {customer.followUps.length === 0 && <p className="text-sm text-gray-500">No follow-up notes yet.</p>}
+        {customer.followUps.length === 0 && <EmptyState message="No follow-up notes yet." />}
       </ul>
     </div>
   );
