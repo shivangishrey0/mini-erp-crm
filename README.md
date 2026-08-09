@@ -111,7 +111,7 @@ Defined in `server/prisma/schema.prisma`. Core models:
 - [x] **Task 6** — Challan APIs (draft/confirm/cancel, stock transaction logic)
 - [x] **Task 7** — Frontend setup (Vite React client, Tailwind, auth context, protected routes, sidebar layout)
 - [x] **Task 8** — Frontend pages (customers, products + stock, challan creation flow, role-aware navigation)
-- [ ] Task 9 — Polish
+- [x] **Task 9** — Polish (debounced search, spinner/retry error states, low-stock highlighting)
 - [ ] Task 10 — Docs & submission prep
 
 ## Assumptions & Decisions
@@ -213,3 +213,14 @@ Defined in `server/prisma/schema.prisma`. Core models:
   restoring stock (40 → 50), the critical insufficient-stock error surfacing the exact backend
   message with no bad navigation, and ACCOUNTS-role read-only enforcement across all 3 modules.
   Screenshots reviewed, not just assertions; zero unexpected console errors.
+- **`useDebouncedValue` delays the *search value*, not the input field itself** — the input
+  stays controlled and responsive to every keystroke; only the value used in the API-call
+  dependency array is debounced (400ms). Verified via Playwright request interception: typing
+  6 characters quickly fired 1 network request instead of 6.
+- **`ErrorState` always includes a `Retry` button** that just increments a `reloadCounter` state
+  included in each list page's `useEffect` dependency array — re-running the exact same fetch
+  rather than a special-cased retry code path. Verified by aborting a live network request and
+  confirming Retry actually recovers the page, not just re-showing the error.
+- **Low-stock highlighting is a row background, not just the existing badge** — a badge next to
+  the stock number required reading each row; a `bg-red-50` row background makes low-stock items
+  scannable across the whole table at a glance.
