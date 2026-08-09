@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import Pagination from "../../components/Pagination";
@@ -13,9 +13,12 @@ const CAN_WRITE_ROLES = ["ADMIN", "WAREHOUSE"];
 
 export default function ProductsListPage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search);
-  const [lowStockOnly, setLowStockOnly] = useState(false);
+  // Reads the initial value from ?lowStock=true so the Dashboard's low-stock
+  // stat card can deep-link here pre-filtered, not just to the plain list.
+  const [lowStockOnly, setLowStockOnly] = useState(searchParams.get("lowStock") === "true");
   const [page, setPage] = useState(1);
   const [data, setData] = useState({ data: [], pagination: { page: 1, totalPages: 1 } });
   const [loading, setLoading] = useState(true);

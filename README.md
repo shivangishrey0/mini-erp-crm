@@ -360,3 +360,30 @@ Written instructions for deploying this project — not an already-deployed live
   logins (Sales/Warehouse/Accounts) live in a separate trailing folder specifically so they don't
   overwrite the active token mid-run if someone runs the whole collection at once; they're meant
   to be triggered individually when manually testing a specific role's `403` behavior.
+- **Post-submission design pass** (after all 10 tasks): the original UI was functional but
+  visually generic. Rebuilt with: a shared `Badge` component (status/type/category as colored
+  pills everywhere, not just challans), a small hand-authored inline SVG icon set (`components/
+  icons.jsx` — no icon library dependency), consistent `shadow-sm` depth on cards/tables (was
+  flat borders only), uppercase-tracked table headers, zebra striping, tactile
+  `active:scale-95` press feedback on buttons, and a real **Dashboard** (stat cards for
+  customers/products/low-stock/challans + a recent-challans table) replacing what had been a
+  near-blank welcome page.
+- **Scoped an external "Apple design" guidance doc to what actually fits this stack** — most of
+  it targets gesture-heavy native apps (spring physics, drag momentum projection, haptics) and
+  would require an animation library, which conflicts with this project's own "no UI/animation
+  library, plain Tailwind" decision (see above). Applied only what transfers cleanly to a
+  Tailwind admin CRUD app: typography as a hierarchy (tracking/leading as a set, not just size),
+  instant tactile button feedback, depth via shadows on structural chrome, consistent
+  iconography, and clear feedback states. Did not add drag-reorder tables, rubber-banding,
+  pointer-capture gesture tracking, or haptics/sound — out of scope for this project.
+- **Dashboard's low-stock stat card deep-links to a pre-filtered product list**
+  (`/products?lowStock=true`) rather than just the plain list — `ProductsListPage` reads
+  `useSearchParams()` once on mount to seed its `lowStockOnly` checkbox state, so the shortcut
+  is actually functional, not just a link to the right page.
+- **Verified the redesign didn't break functionality, not just that it looked right:** ran a
+  fresh Playwright pass covering login, customer creation, product creation, stock adjustment,
+  and the full create-and-confirm-then-cancel challan flow against the live backend after every
+  visual change. Confirmed via the `StockMovement` audit log itself (`OUT ... confirmed` then
+  `IN ... cancelled` rows) that the transaction logic was untouched by the styling pass, not
+  just by trusting a status badge on screen. All screenshots reviewed directly, zero console
+  errors. Test data cleaned up afterward.
