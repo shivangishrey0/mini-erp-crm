@@ -11,15 +11,23 @@ internal staff roles: ADMIN, SALES, WAREHOUSE, ACCOUNTS.
 - **Database:** PostgreSQL (Supabase)
 - **Auth:** JWT (`jsonwebtoken`, `bcryptjs`), role-based access control
 - **Validation:** Zod
-- **Frontend (planned, Task 7+):** React (plain JS) + Vite, react-router-dom, axios
+- **Frontend:** React (plain JS) + Vite, Tailwind CSS v4, react-router-dom, axios
 
 ## Project Structure
 
 ```
 mini-erp-crm/
 ├── server/     Express + Prisma API
-└── client/     React frontend (not started yet)
+└── client/     React frontend
 ```
+
+## Frontend Setup
+
+1. `cd client && npm install`
+2. Copy `.env.example` to `.env` — `VITE_API_URL` should point at the running backend
+   (default `http://localhost:5000`)
+3. Start the dev server: `npm run dev` — runs on `http://localhost:5173`
+4. Log in with any seeded test credential (see Test Credentials below)
 
 ## Backend Setup
 
@@ -101,7 +109,7 @@ Defined in `server/prisma/schema.prisma`. Core models:
 - [x] **Task 4** — Customer CRM APIs
 - [x] **Task 5** — Product & stock movement APIs
 - [x] **Task 6** — Challan APIs (draft/confirm/cancel, stock transaction logic)
-- [ ] Task 7 — Frontend setup
+- [x] **Task 7** — Frontend setup (Vite React client, Tailwind, auth context, protected routes, sidebar layout)
 - [ ] Task 8 — Frontend pages
 - [ ] Task 9 — Polish
 - [ ] Task 10 — Docs & submission prep
@@ -172,3 +180,13 @@ Defined in `server/prisma/schema.prisma`. Core models:
 - **Challan numbers (`CH-<year>-<0001>`) use a count-based sequence inside the create
   transaction** — simple and correct at this project's scale, but not immune to a race under
   true simultaneous creates in the same instant (a DB sequence would close that gap at scale).
+- **Frontend uses plain CSS-free Tailwind (no component library)** — matches "React with plain
+  JavaScript" minimalism from the brief; no MUI/Tailwind-UI/etc. dependency to explain away.
+- **Auth state lives in React Context, not Redux/Zustand** — the app only needs "who's logged
+  in and what's their role" globally; a full state library would be unjustified weight for that.
+- **JWT stored in `localStorage`, not an `httpOnly` cookie** — standard SPA pattern, persists
+  across browser restarts (matches the backend's 8h token expiry). Tradeoff: more exposed to
+  XSS than a cookie would be; a cookie would need CSRF handling instead. Acceptable for this
+  project's scope.
+- **`ProtectedRoute` takes an optional `allowedRoles` prop it doesn't use yet** — built now so
+  Task 8's role-gated pages don't need new routing infrastructure, just a prop.
