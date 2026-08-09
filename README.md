@@ -5,6 +5,17 @@ Covers customer relationship management, product & inventory tracking, and
 sales challan (delivery note) issuance, with role-based access for four
 internal staff roles: ADMIN, SALES, WAREHOUSE, ACCOUNTS.
 
+## Live Demo
+
+- **Frontend:** https://mini-erp-4srcm9cn0-shivangi-shreyas-projects.vercel.app
+- **Backend API:** https://mini-erp-crm-api-9dba.onrender.com (health check: `/health`)
+- **Test credentials:** see [Test Credentials](#test-credentials) below — all 4 roles share one
+  password.
+
+The backend is on Render's free tier and spins down after ~15 minutes of inactivity — the first
+request after idle time can take 30-50 seconds to wake it back up. This is expected free-tier
+behavior, not a bug.
+
 ## Tech Stack
 
 - **Backend:** Node.js, TypeScript, Express, Prisma ORM 6
@@ -154,6 +165,10 @@ copy-pasting. Verified end-to-end with `newman` (Postman's CLI runner): all 25 r
 with the exact expected status codes on a single linear run. Role-specific logins for testing
 `403`s individually live in the trailing **Role Logins** folder.
 
+The `baseUrl` collection variable defaults to `http://localhost:5000` for local testing. To hit
+the live deployment instead, edit that variable to `https://mini-erp-crm-api-9dba.onrender.com`
+— everything else in the collection works unchanged either way.
+
 ## Database Schema
 
 Defined in `server/prisma/schema.prisma`. Core models:
@@ -170,7 +185,8 @@ Defined in `server/prisma/schema.prisma`. Core models:
 
 ## Deployment
 
-Written instructions for deploying this project — not an already-deployed live instance.
+Live at the URLs in [Live Demo](#live-demo) above (Render + Vercel + Supabase, all free tier).
+Steps below document how it was deployed, so it can be reproduced from scratch if needed.
 
 ### Backend (Render, Railway, or any Node host)
 
