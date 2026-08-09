@@ -73,6 +73,11 @@ this in production).
 | POST   | `/products`       | ADMIN, WAREHOUSE  | Create (always starts at `currentStock: 0`) |
 | PATCH  | `/products/:id`   | ADMIN, WAREHOUSE  | Edit catalog fields — never `currentStock` |
 | POST   | `/products/:id/stock-movements` | ADMIN, WAREHOUSE | Manual IN/OUT adjustment with a reason; 400 if OUT exceeds current stock |
+| GET    | `/challans`       | Bearer token (any role) | List, paginated. Query: `page`, `pageSize`, `status`, `customerId` |
+| GET    | `/challans/:id`   | Bearer token (any role) | Detail (customer + line items) |
+| POST   | `/challans`       | ADMIN, SALES      | Create — `{ customerId, items: [{productId, quantity}], status? }`, defaults to `DRAFT` |
+| POST   | `/challans/:id/confirm` | ADMIN, SALES | DRAFT → CONFIRMED: deducts stock, logs OUT movements, all-or-nothing |
+| POST   | `/challans/:id/cancel`  | ADMIN, SALES | → CANCELLED; if it was CONFIRMED, restores stock via reversal IN movements |
 
 ## Database Schema
 
@@ -95,7 +100,7 @@ Defined in `server/prisma/schema.prisma`. Core models:
 - [x] **Task 3** — Auth (seed script, login, JWT middleware, role guards)
 - [x] **Task 4** — Customer CRM APIs
 - [x] **Task 5** — Product & stock movement APIs
-- [ ] Task 6 — Challan APIs (draft/confirm/cancel, stock transaction logic)
+- [x] **Task 6** — Challan APIs (draft/confirm/cancel, stock transaction logic)
 - [ ] Task 7 — Frontend setup
 - [ ] Task 8 — Frontend pages
 - [ ] Task 9 — Polish
@@ -153,3 +158,17 @@ Defined in `server/prisma/schema.prisma`. Core models:
 - **Product read access is open to any authenticated role; writes are ADMIN + WAREHOUSE only** —
   same pattern as customers: inventory is a warehouse function, but SALES/ACCOUNTS still need
   to see stock levels.
+- **Challan stock-deduction logic lives in exactly one function** (`confirmChallanTx`), reused
+  by both `POST /challans/:id/confirm` and `POST /challans` when `status: "CONFIRMED"` is
+  requested at creation. It takes a `Prisma.TransactionClient` rather than the global client,
+  so it always runs inside the caller's transaction — a create-and-confirm that fails on
+  insufficient stock rolls back the challan creation too, not just the stock change. That's
+  what makes "confirming with insufficient stock changes nothing in the database" literally
+  true even for the one-call create-and-confirm path, not just the dedicated confirm endpoint.
+- **Cancelling a CONFIRMED challan restores stock** — increments `currentStock` back and logs
+  a reversal `IN` `StockMovement` (reason: `"Challan CH-... cancelled"`) per item, inside a
+  `$transaction`. Cancelling a DRAFT challan has no stock impact, since nothing was deducted.
+  Cancelling an already-cancelled challan is rejected with `400`.
+- **Challan numbers (`CH-<year>-<0001>`) use a count-based sequence inside the create
+  transaction** — simple and correct at this project's scale, but not immune to a race under
+  true simultaneous creates in the same instant (a DB sequence would close that gap at scale).
