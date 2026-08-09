@@ -61,6 +61,12 @@ this in production).
 | POST   | `/auth/login`     | none              | Returns `{ token, user }` on success  |
 | GET    | `/auth/me`        | Bearer token      | Returns the current user's profile    |
 | GET    | `/auth/admin-only`| Bearer token, ADMIN only | Temporary roleGuard smoke test — remove once Task 4+ adds real role-restricted routes |
+| GET    | `/customers`      | Bearer token (any role) | List, paginated. Query: `page`, `pageSize`, `search` (name/businessName/mobile/email), `type`, `status` |
+| GET    | `/customers/:id`  | Bearer token (any role) | Detail, includes follow-up notes |
+| GET    | `/customers/:id/follow-ups` | Bearer token (any role) | Paginated follow-up notes for a customer |
+| POST   | `/customers`      | ADMIN, SALES      | Create a customer |
+| PATCH  | `/customers/:id`  | ADMIN, SALES      | Partial update (e.g. just `status`) |
+| POST   | `/customers/:id/follow-ups` | ADMIN, SALES | Add a follow-up note |
 
 ## Database Schema
 
@@ -81,7 +87,7 @@ Defined in `server/prisma/schema.prisma`. Core models:
 - [x] **Task 1** — TypeScript config, Prisma schema, initial migration, `.env.example`
 - [x] **Task 2** — Express app skeleton, error handling, health check, Prisma client singleton
 - [x] **Task 3** — Auth (seed script, login, JWT middleware, role guards)
-- [ ] Task 4 — Customer CRM APIs
+- [x] **Task 4** — Customer CRM APIs
 - [ ] Task 5 — Product & stock movement APIs
 - [ ] Task 6 — Challan APIs (draft/confirm/cancel, stock transaction logic)
 - [ ] Task 7 — Frontend setup
@@ -116,3 +122,10 @@ Defined in `server/prisma/schema.prisma`. Core models:
   is 8h (workday-length session for an internal staff tool).
 - **Login returns the same error for "no such user" and "wrong password"** (401, generic
   message) so the response can't be used to enumerate registered emails.
+- **Customer CRM has no DELETE endpoint** — the brief only calls for add/edit/search/detail/
+  follow-ups. Deactivation goes through `PATCH /customers/:id` with `status: "INACTIVE"`
+  instead. This also sidesteps `Challan.customerId` being `ON DELETE RESTRICT` — a customer
+  with sales history couldn't be hard-deleted anyway without deleting their challans first.
+- **Customer read access is open to any authenticated role; writes are ADMIN + SALES only** —
+  CRM is a sales function, but ACCOUNTS/WAREHOUSE still need to view customer data (GST info
+  for invoicing, customer name on challans).
