@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import Spinner from "../../components/Spinner";
+import ErrorState from "../../components/ErrorState";
 
 const CAN_WRITE_ROLES = ["ADMIN", "WAREHOUSE"];
 
@@ -30,12 +32,16 @@ export default function ProductDetailPage() {
     return api.get(`/products/${id}/movements`).then((res) => setMovements(res.data.data));
   }
 
-  useEffect(() => {
+  function loadAll() {
     setLoading(true);
     setError("");
-    Promise.all([loadProduct(), loadMovements()])
+    return Promise.all([loadProduct(), loadMovements()])
       .catch(() => setError("Failed to load product."))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -55,8 +61,8 @@ export default function ProductDetailPage() {
     }
   }
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  if (loading) return <Spinner />;
+  if (error) return <ErrorState message={error} onRetry={loadAll} />;
   if (!product) return null;
 
   return (

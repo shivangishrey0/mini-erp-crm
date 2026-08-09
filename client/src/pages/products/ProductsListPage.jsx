@@ -3,17 +3,22 @@ import { Link } from "react-router-dom";
 import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import Pagination from "../../components/Pagination";
+import Spinner from "../../components/Spinner";
+import ErrorState from "../../components/ErrorState";
+import useDebouncedValue from "../../hooks/useDebouncedValue";
 
 const CAN_WRITE_ROLES = ["ADMIN", "WAREHOUSE"];
 
 export default function ProductsListPage() {
   const { user } = useAuth();
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search);
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [page, setPage] = useState(1);
   const [data, setData] = useState({ data: [], pagination: { page: 1, totalPages: 1 } });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reloadCounter, setReloadCounter] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -21,7 +26,7 @@ export default function ProductsListPage() {
     setError("");
 
     api
-      .get("/products", { params: { page, search: search || undefined, lowStock: lowStockOnly || undefined } })
+      .get("/products", { params: { page, search: debouncedSearch || undefined, lowStock: lowStockOnly || undefined } })
       .then((res) => {
         if (!cancelled) setData(res.data);
       })
@@ -35,7 +40,7 @@ export default function ProductsListPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, search, lowStockOnly]);
+  }, [page, debouncedSearch, lowStockOnly, reloadCounter]);
 
   return (
     <div>
@@ -75,8 +80,10 @@ export default function ProductsListPage() {
         </label>
       </div>
 
-      {loading && <p className="text-sm text-gray-500">Loading...</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {loading && <Spinner />}
+      {!loading && error && (
+        <ErrorState message={error} onRetry={() => setReloadCounter((c) => c + 1)} />
+      )}
 
       {!loading && !error && (
         <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
@@ -92,7 +99,10 @@ export default function ProductsListPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {data.data.map((product) => (
-                <tr key={product.id} className="hover:bg-gray-50">
+                <tr
+                  key={product.id}
+                  className={product.isLowStock ? "bg-red-50 hover:bg-red-100" : "hover:bg-gray-50"}
+                >
                   <td className="px-4 py-2">
                     <Link to={`/products/${product.id}`} className="font-medium text-indigo-600 hover:underline">
                       {product.name}
@@ -125,7 +135,9 @@ export default function ProductsListPage() {
         </div>
       )}
 
-      <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
+      {!loading && !error && (
+        <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
+      )}
     </div>
   );
 }
