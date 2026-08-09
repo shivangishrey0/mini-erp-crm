@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../lib/prisma";
 import { AppError } from "../middleware/errorHandler";
+import { formatZodError } from "../lib/validation";
 import {
   createCustomerSchema,
   updateCustomerSchema,
@@ -9,10 +10,6 @@ import {
   paginationQuerySchema,
   followUpNoteSchema,
 } from "../schemas/customer.schema";
-
-function formatZodError(error: { issues: { message: string }[] }): string {
-  return error.issues.map((issue) => issue.message).join(", ");
-}
 
 export async function list(req: Request, res: Response) {
   const parsed = listCustomersQuerySchema.safeParse(req.query);
