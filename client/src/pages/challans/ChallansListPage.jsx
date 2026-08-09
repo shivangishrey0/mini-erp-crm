@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import Pagination from "../../components/Pagination";
+import Spinner from "../../components/Spinner";
+import ErrorState from "../../components/ErrorState";
 
 const CAN_WRITE_ROLES = ["ADMIN", "SALES"];
 const STATUSES = ["DRAFT", "CONFIRMED", "CANCELLED"];
@@ -14,6 +16,7 @@ export default function ChallansListPage() {
   const [data, setData] = useState({ data: [], pagination: { page: 1, totalPages: 1 } });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [reloadCounter, setReloadCounter] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +38,7 @@ export default function ChallansListPage() {
     return () => {
       cancelled = true;
     };
-  }, [page, status]);
+  }, [page, status, reloadCounter]);
 
   return (
     <div>
@@ -67,8 +70,10 @@ export default function ChallansListPage() {
         ))}
       </select>
 
-      {loading && <p className="text-sm text-gray-500">Loading...</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {loading && <Spinner />}
+      {!loading && error && (
+        <ErrorState message={error} onRetry={() => setReloadCounter((c) => c + 1)} />
+      )}
 
       {!loading && !error && (
         <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
@@ -110,7 +115,9 @@ export default function ChallansListPage() {
         </div>
       )}
 
-      <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
+      {!loading && !error && (
+        <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
+      )}
     </div>
   );
 }

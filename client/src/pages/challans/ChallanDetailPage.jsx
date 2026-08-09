@@ -3,6 +3,8 @@ import { useParams } from "react-router-dom";
 import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { StatusBadge } from "./ChallansListPage";
+import Spinner from "../../components/Spinner";
+import ErrorState from "../../components/ErrorState";
 
 const CAN_WRITE_ROLES = ["ADMIN", "SALES"];
 
@@ -24,9 +26,14 @@ export default function ChallanDetailPage() {
       .catch(() => setError("Failed to load challan."));
   }
 
-  useEffect(() => {
+  function retryLoad() {
     setLoading(true);
+    setError("");
     loadChallan().finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    retryLoad();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
@@ -56,8 +63,8 @@ export default function ChallanDetailPage() {
     }
   }
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  if (loading) return <Spinner />;
+  if (error) return <ErrorState message={error} onRetry={retryLoad} />;
   if (!challan) return null;
 
   const total = challan.items.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../lib/api";
+import Spinner from "../../components/Spinner";
 
 export default function ChallanCreatePage() {
   const navigate = useNavigate();
@@ -67,7 +68,7 @@ export default function ChallanCreatePage() {
     }
   }
 
-  if (loadingOptions) return <p className="text-sm text-gray-500">Loading...</p>;
+  if (loadingOptions) return <Spinner />;
 
   return (
     <div className="max-w-3xl">
