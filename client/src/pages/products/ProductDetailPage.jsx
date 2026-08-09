@@ -4,14 +4,18 @@ import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import Spinner from "../../components/Spinner";
 import ErrorState from "../../components/ErrorState";
+import EmptyState from "../../components/EmptyState";
+import Breadcrumbs from "../../components/Breadcrumbs";
 import Badge from "../../components/Badge";
 import { WarningIcon } from "../../components/icons";
+import { useToast } from "../../context/ToastContext";
 
 const CAN_WRITE_ROLES = ["ADMIN", "WAREHOUSE"];
 
 export default function ProductDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const canWrite = CAN_WRITE_ROLES.includes(user?.role);
 
   const [product, setProduct] = useState(null);
@@ -55,6 +59,7 @@ export default function ProductDetailPage() {
       await api.post(`/products/${id}/stock-movements`, { quantity: Number(quantity), type, reason });
       setQuantity("");
       setReason("");
+      showToast(type === "IN" ? "Stock added" : "Stock removed");
       await Promise.all([loadProduct(), loadMovements()]);
     } catch (err) {
       setAdjustError(err.response?.data?.error ?? "Failed to adjust stock.");
@@ -69,6 +74,9 @@ export default function ProductDetailPage() {
 
   return (
     <div className="max-w-3xl">
+      <Breadcrumbs
+        items={[{ label: "Dashboard", to: "/" }, { label: "Products", to: "/products" }, { label: product.name }]}
+      />
       <div className="mb-5 flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">{product.name}</h1>
         {canWrite && (
@@ -177,8 +185,8 @@ export default function ProductDetailPage() {
             ))}
             {movements.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
-                  No stock movements yet.
+                <td colSpan={5}>
+                  <EmptyState message="No stock movements yet." />
                 </td>
               </tr>
             )}
