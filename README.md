@@ -21,6 +21,63 @@ mini-erp-crm/
 └── client/     React frontend
 ```
 
+## Architecture
+
+**Backend — layered, one direction of dependency:**
+
+```
+routes/  ->  middleware/  ->  controllers/  ->  lib/
+```
+
+- `routes/*.routes.ts` — maps URL + HTTP method to a controller function, and declares which
+  middleware guards it (`authMiddleware`, `roleGuard([...])`). No business logic here.
+- `middleware/` — cross-cutting request handling: `authMiddleware` verifies the JWT and attaches
+  `req.user`; `roleGuard` checks `req.user.role` against an allowed list; `errorHandler`/
+  `notFoundHandler` catch whatever nothing else handled.
+- `schemas/*.schema.ts` — Zod input validation, one schema per shape (create/update/list-query).
+- `controllers/*.controller.ts` — the actual logic: validate -> query/mutate via Prisma ->
+  respond. Throws `AppError(status, message)` for expected failures instead of scattering
+  `res.status().json()` calls everywhere.
+- `lib/` — shared, stateless infrastructure with no business logic: the Prisma client singleton,
+  the JWT sign/verify wrapper, the shared Zod-error formatter.
+
+**Request lifecycle example** (`PATCH /products/:id`):
+1. `authMiddleware` verifies the Bearer token -> `req.user = { userId, role }`
+2. `roleGuard(["ADMIN", "WAREHOUSE"])` checks `req.user.role`, `403`s if not allowed
+3. Controller validates the body against `updateProductSchema`, `400`s on failure
+4. Controller checks the product exists, `404`s if not
+5. Controller updates via Prisma, responds `200`
+6. If anything above throws, `errorHandler` (mounted last in `src/index.ts`) catches it and
+   formats a consistent JSON error
+
+**Transaction pattern** (the part evaluated hardest): every stock-changing operation — manual
+adjustment (`POST /products/:id/stock-movements`) and challan confirm/cancel — follows the same
+shape: validate every line *before* touching any data, then perform all writes
+(`Product.currentStock` update + `StockMovement` insert) inside a single `prisma.$transaction`.
+`confirmChallanTx` takes a `Prisma.TransactionClient` as a parameter rather than importing the
+global client, so it can be nested inside a *larger* transaction (the create-and-confirm path)
+or run in its own (the dedicated confirm endpoint) — same function, two call sites, one
+guarantee: all-or-nothing.
+
+**Frontend — mirrors the backend's module boundaries:**
+
+```
+context/    -> global state (who's logged in)
+lib/        -> axios instance (auth header, 401 handling)
+components/ -> shared, page-agnostic UI (Pagination, Spinner, ErrorState, Layout)
+hooks/      -> shared stateful logic (useDebouncedValue)
+pages/      -> one folder per module (customers/products/challans), each with List/Form/Detail
+```
+
+Every page follows the same shape: `useState` for data/loading/error -> `useEffect` fetches on
+mount and when filters change -> a role check from `useAuth()` gates write-action buttons,
+mirroring the backend's `roleGuard` allow-lists exactly.
+
+**Auth flow:** login -> backend signs `{ userId, role }` into a JWT -> frontend stores it in
+`localStorage` and attaches it via an axios request interceptor on every subsequent call -> a
+`401` response anywhere triggers an axios response interceptor that clears storage and redirects
+to `/login`.
+
 ## Frontend Setup
 
 1. `cd client && npm install`
@@ -68,7 +125,6 @@ this in production).
 | GET    | `/health`         | none              | Liveness + DB connectivity check      |
 | POST   | `/auth/login`     | none              | Returns `{ token, user }` on success  |
 | GET    | `/auth/me`        | Bearer token      | Returns the current user's profile    |
-| GET    | `/auth/admin-only`| Bearer token, ADMIN only | Temporary roleGuard smoke test — remove once Task 4+ adds real role-restricted routes |
 | GET    | `/customers`      | Bearer token (any role) | List, paginated. Query: `page`, `pageSize`, `search` (name/businessName/mobile/email), `type`, `status` |
 | GET    | `/customers/:id`  | Bearer token (any role) | Detail, includes follow-up notes |
 | GET    | `/customers/:id/follow-ups` | Bearer token (any role) | Paginated follow-up notes for a customer |
@@ -87,6 +143,16 @@ this in production).
 | POST   | `/challans/:id/confirm` | ADMIN, SALES | DRAFT → CONFIRMED: deducts stock, logs OUT movements, all-or-nothing |
 | POST   | `/challans/:id/cancel`  | ADMIN, SALES | → CANCELLED; if it was CONFIRMED, restores stock via reversal IN movements |
 
+### Postman Collection
+
+[`Mini-ERP-CRM.postman_collection.json`](./Mini-ERP-CRM.postman_collection.json) at the repo
+root — import it into Postman, run **Auth > Login (Admin)** first (auto-captures the token),
+then run any request top-to-bottom. `customerId`/`productId`/`challanId` collection variables
+are captured automatically from each `Create` response, so requests chain without manual
+copy-pasting. Verified end-to-end with `newman` (Postman's CLI runner): all 25 requests pass
+with the exact expected status codes on a single linear run. Role-specific logins for testing
+`403`s individually live in the trailing **Role Logins** folder.
+
 ## Database Schema
 
 Defined in `server/prisma/schema.prisma`. Core models:
@@ -101,6 +167,66 @@ Defined in `server/prisma/schema.prisma`. Core models:
   at creation time (in addition to the live `productId` reference), so historical challans stay
   accurate even if a product's price or name changes later
 
+## Deployment
+
+Written instructions for deploying this project — not an already-deployed live instance.
+
+### Backend (Render, Railway, or any Node host)
+
+1. Push this repo to GitHub; point the host at `server/` as the root directory.
+2. Build command: `npm install && npm run build`
+3. Start command: `npm run start`
+4. Environment variables: `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET` (most hosts inject `PORT`
+   automatically — the app already reads `process.env.PORT`).
+5. Add a release/deploy-time command: `npx prisma migrate deploy` — applies committed
+   migrations without generating new ones (unlike `migrate dev`, which is dev-only).
+6. Run `npx prisma db seed` once manually via the host's shell/console if you want the same 4
+   test users available in the deployed environment.
+
+### Frontend (Vercel or Netlify)
+
+1. Root directory: `client/`
+2. Build command: `npm run build`; output directory: `dist`
+3. Environment variable: `VITE_API_URL` = the deployed backend's URL from above
+4. Vite bakes `VITE_API_URL` in at build time — redeploy the frontend if the backend URL changes
+
+### Before actually going live
+
+- Lock CORS down to the deployed frontend's exact origin — see Known Limitations below, the
+  backend currently accepts requests from any origin.
+- Use a freshly generated `JWT_SECRET` in the hosting platform's secret store, never the one
+  from local `.env`.
+- `DATABASE_URL`/`DIRECT_URL` already point at Supabase, so no schema changes are needed to go
+  from local dev to a hosted backend — same database, different app deployment.
+
+## Known Limitations
+
+- **No automated test suite.** Verification throughout development was manual and live: curl/
+  Postman testing after each backend task (see the Postman collection above, verified with
+  `newman`), and headless-Chrome Playwright passes after each frontend task. No repeatable
+  Jest/Vitest suite is committed to the repo.
+- **Challan numbering can theoretically race.** `CH-<year>-<0001>` uses a count-based sequence
+  inside the create transaction — correct at this project's scale, but two truly simultaneous
+  creates could compute the same count before either commits. A Postgres sequence would close
+  that gap at higher scale.
+- **Low-stock filtering runs in application code, not the database** — Prisma can't compare two
+  columns of the same row (`currentStock < minStockAlert`) in a `where` clause without raw SQL.
+- **CORS is fully open** (`app.use(cors())`, no origin restriction) — fine for local development
+  and this case study, but should be locked to the deployed frontend's specific origin for any
+  real production use (see Deployment above).
+- **No refresh-token flow.** The JWT simply expires after 8h and the user has to log in again;
+  there's no silent re-authentication.
+- **No password-reset / forgot-password flow.**
+- **No rate-limiting or brute-force protection** on `POST /auth/login`.
+- **Product movement history on the frontend only shows the first page** (20 most recent) — the
+  backend endpoint (`GET /products/:id/movements`) is paginated, but the detail page's UI has no
+  "load more" control wired to it yet.
+- **No notification system.** Follow-up due dates and low-stock indicators are visible in the UI
+  when someone looks, but nothing proactively emails or alerts anyone.
+- **No edit history / audit trail for Customer or Product records themselves** — `StockMovement`
+  fully audits every stock change, but there's no log of who changed a customer's address or a
+  product's price, only the current value.
+
 ## Progress
 
 - [x] **Task 1** — TypeScript config, Prisma schema, initial migration, `.env.example`
@@ -112,7 +238,7 @@ Defined in `server/prisma/schema.prisma`. Core models:
 - [x] **Task 7** — Frontend setup (Vite React client, Tailwind, auth context, protected routes, sidebar layout)
 - [x] **Task 8** — Frontend pages (customers, products + stock, challan creation flow, role-aware navigation)
 - [x] **Task 9** — Polish (debounced search, spinner/retry error states, low-stock highlighting)
-- [ ] Task 10 — Docs & submission prep
+- [x] **Task 10** — Docs & submission prep (Postman collection, architecture, limitations, deployment)
 
 ## Assumptions & Decisions
 
@@ -224,3 +350,13 @@ Defined in `server/prisma/schema.prisma`. Core models:
 - **Low-stock highlighting is a row background, not just the existing badge** — a badge next to
   the stock number required reading each row; a `bg-red-50` row background makes low-stock items
   scannable across the whole table at a glance.
+- **`GET /auth/admin-only` was removed in Task 10** — it was explicitly a temporary roleGuard
+  smoke test from Task 3, meant to be deleted once real role-guarded routes existed (true since
+  Task 4's customer endpoints). Removed from both the router and the Postman collection;
+  re-verified the full collection still passes with `newman` afterward.
+- **Postman collection structure:** a single primary login (Admin, since ADMIN passes every
+  `roleGuard`) drives one clean top-to-bottom collection run — `Create` requests were
+  deliberately ordered before the `Get`/`Update` requests that depend on their IDs. Role-specific
+  logins (Sales/Warehouse/Accounts) live in a separate trailing folder specifically so they don't
+  overwrite the active token mid-run if someone runs the whole collection at once; they're meant
+  to be triggered individually when manually testing a specific role's `403` behavior.
