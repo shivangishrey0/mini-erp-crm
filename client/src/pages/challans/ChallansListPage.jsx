@@ -5,6 +5,8 @@ import { useAuth } from "../../context/AuthContext";
 import Pagination from "../../components/Pagination";
 import Spinner from "../../components/Spinner";
 import ErrorState from "../../components/ErrorState";
+import Badge, { CHALLAN_STATUS_VARIANT } from "../../components/Badge";
+import { PlusIcon } from "../../components/icons";
 
 const CAN_WRITE_ROLES = ["ADMIN", "SALES"];
 const STATUSES = ["DRAFT", "CONFIRMED", "CANCELLED"];
@@ -42,13 +44,14 @@ export default function ChallansListPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-gray-900">Challans</h1>
+      <div className="mb-5 flex items-center justify-between">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Challans</h1>
         {CAN_WRITE_ROLES.includes(user?.role) && (
           <Link
             to="/challans/new"
-            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+            className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:bg-indigo-700 active:scale-95"
           >
+            <PlusIcon className="h-4 w-4" />
             Create Challan
           </Link>
         )}
@@ -60,7 +63,7 @@ export default function ChallansListPage() {
           setPage(1);
           setStatus(event.target.value);
         }}
-        className="mb-4 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+        className="mb-4 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
       >
         <option value="">All statuses</option>
         {STATUSES.map((s) => (
@@ -76,31 +79,31 @@ export default function ChallansListPage() {
       )}
 
       {!loading && !error && (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Challan #</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Customer</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Status</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Total Qty</th>
-                <th className="px-4 py-2 text-left font-medium text-gray-500">Created</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Challan #</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Customer</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Status</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Total Qty</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Created</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {data.data.map((challan) => (
-                <tr key={challan.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-2">
+              {data.data.map((challan, idx) => (
+                <tr key={challan.id} className={idx % 2 === 1 ? "bg-gray-50/50 hover:bg-gray-100/70" : "hover:bg-gray-50"}>
+                  <td className="px-4 py-2.5">
                     <Link to={`/challans/${challan.id}`} className="font-medium text-indigo-600 hover:underline">
                       {challan.challanNumber}
                     </Link>
                   </td>
-                  <td className="px-4 py-2 text-gray-700">{challan.customer.businessName}</td>
-                  <td className="px-4 py-2">
-                    <StatusBadge status={challan.status} />
+                  <td className="px-4 py-2.5 text-gray-700">{challan.customer.businessName}</td>
+                  <td className="px-4 py-2.5">
+                    <Badge variant={CHALLAN_STATUS_VARIANT[challan.status]}>{challan.status}</Badge>
                   </td>
-                  <td className="px-4 py-2 text-gray-700">{challan.totalQuantity}</td>
-                  <td className="px-4 py-2 text-gray-500">{new Date(challan.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-2.5 text-gray-700">{challan.totalQuantity}</td>
+                  <td className="px-4 py-2.5 text-gray-500">{new Date(challan.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))}
               {data.data.length === 0 && (
@@ -119,17 +122,5 @@ export default function ChallansListPage() {
         <Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} onPageChange={setPage} />
       )}
     </div>
-  );
-}
-
-const STATUS_STYLES = {
-  DRAFT: "bg-gray-100 text-gray-700",
-  CONFIRMED: "bg-green-100 text-green-700",
-  CANCELLED: "bg-red-100 text-red-700",
-};
-
-export function StatusBadge({ status }) {
-  return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[status]}`}>{status}</span>
   );
 }

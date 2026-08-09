@@ -72,13 +72,13 @@ export default function ChallanCreatePage() {
 
   return (
     <div className="max-w-3xl">
-      <h1 className="mb-4 text-xl font-semibold text-gray-900">Create Challan</h1>
+      <h1 className="mb-5 text-2xl font-bold tracking-tight text-gray-900">Create Challan</h1>
 
       {/* Plain onSubmit preventDefault, not a real submit handler - there are
           two distinct actions (draft vs confirm), so Enter shouldn't trigger
           either implicitly. The <form> wrapper is still worth having for
           semantics/accessibility (label associations, browser autofill). */}
-      <form onSubmit={(event) => event.preventDefault()} className="space-y-4 rounded-lg border border-gray-200 bg-white p-6">
+      <form onSubmit={(event) => event.preventDefault()} className="space-y-5 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <div>
           <label className="block text-sm font-medium text-gray-700">
             Customer <span className="text-red-500">*</span>
@@ -87,7 +87,7 @@ export default function ChallanCreatePage() {
             required
             value={customerId}
             onChange={(event) => setCustomerId(event.target.value)}
-            className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           >
             <option value="">Select a customer...</option>
             {customers.map((customer) => (
@@ -109,7 +109,7 @@ export default function ChallanCreatePage() {
                     required
                     value={item.productId}
                     onChange={(event) => updateItem(index, "productId", event.target.value)}
-                    className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                    className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   >
                     <option value="">Select a product...</option>
                     {products.map((p) => (
@@ -124,7 +124,7 @@ export default function ChallanCreatePage() {
                     required
                     value={item.quantity}
                     onChange={(event) => updateItem(index, "quantity", event.target.value)}
-                    className="w-24 rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    className="w-24 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                   {product && (
                     <span className="w-24 text-sm text-gray-500">
@@ -135,7 +135,7 @@ export default function ChallanCreatePage() {
                     type="button"
                     onClick={() => removeItem(index)}
                     disabled={items.length === 1}
-                    className="text-sm text-red-600 hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+                    className="text-sm text-red-600 transition-transform duration-100 hover:underline active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
                   >
                     Remove
                   </button>
@@ -146,7 +146,7 @@ export default function ChallanCreatePage() {
           <button
             type="button"
             onClick={addItem}
-            className="mt-2 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100"
+            className="mt-2 rounded-md border border-gray-300 px-3 py-1.5 text-sm text-gray-700 shadow-sm transition-transform duration-100 hover:bg-gray-100 active:scale-95"
           >
             + Add another item
           </button>
@@ -154,14 +154,14 @@ export default function ChallanCreatePage() {
 
         <p className="text-sm font-medium text-gray-900">Estimated total: ₹{estimatedTotal.toFixed(2)}</p>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
         <div className="flex gap-3">
           <button
             type="button"
             disabled={saving || !customerId}
             onClick={() => handleSave("DRAFT")}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-transform duration-100 hover:bg-gray-100 active:scale-95 disabled:opacity-50"
           >
             Save as Draft
           </button>
@@ -169,7 +169,7 @@ export default function ChallanCreatePage() {
             type="button"
             disabled={saving || !customerId}
             onClick={() => handleSave("CONFIRMED")}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:bg-indigo-700 active:scale-95 disabled:opacity-50"
           >
             Save &amp; Confirm
           </button>
