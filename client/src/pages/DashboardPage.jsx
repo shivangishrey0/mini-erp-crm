@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import api from "../lib/api";
 import { useAuth } from "../context/AuthContext";
 import ErrorState from "../components/ErrorState";
 import EmptyState from "../components/EmptyState";
 import TableSkeleton from "../components/TableSkeleton";
+import SpotlightCard from "../components/SpotlightCard";
+import AnimatedCounter from "../components/AnimatedCounter";
 import Badge, { CHALLAN_STATUS_VARIANT } from "../components/Badge";
 import { CustomersIcon, ProductsIcon, ChallansIcon, WarningIcon } from "../components/icons";
+import { staggerContainer as cardContainer, staggerItem as cardItem } from "../lib/motionVariants";
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -52,8 +56,8 @@ export default function DashboardPage() {
         <div className="h-8 w-64 animate-pulse rounded bg-gray-200" />
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
-              <div className="mb-3 h-9 w-9 animate-pulse rounded-lg bg-gray-200" />
+            <div key={i} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div className="mb-3 h-10 w-10 animate-pulse rounded-lg bg-gray-200" />
               <div className="h-7 w-10 animate-pulse rounded bg-gray-200" />
               <div className="mt-2 h-4 w-20 animate-pulse rounded bg-gray-200" />
             </div>
@@ -66,10 +70,10 @@ export default function DashboardPage() {
   }
 
   const cards = [
-    { label: "Customers", value: stats.customers, Icon: CustomersIcon, to: "/customers", accent: "bg-indigo-50 text-indigo-600" },
-    { label: "Products", value: stats.products, Icon: ProductsIcon, to: "/products", accent: "bg-blue-50 text-blue-600" },
-    { label: "Low Stock", value: stats.lowStock, Icon: WarningIcon, to: "/products?lowStock=true", accent: "bg-red-50 text-red-600" },
-    { label: "Challans", value: stats.challans, Icon: ChallansIcon, to: "/challans", accent: "bg-green-50 text-green-600" },
+    { label: "Customers", value: stats.customers, Icon: CustomersIcon, to: "/customers", gradient: "from-indigo-500 to-indigo-600" },
+    { label: "Products", value: stats.products, Icon: ProductsIcon, to: "/products", gradient: "from-blue-500 to-blue-600" },
+    { label: "Low Stock", value: stats.lowStock, Icon: WarningIcon, to: "/products?lowStock=true", gradient: "from-rose-500 to-red-600" },
+    { label: "Challans", value: stats.challans, Icon: ChallansIcon, to: "/challans", gradient: "from-emerald-500 to-emerald-600" },
   ];
 
   return (
@@ -79,21 +83,28 @@ export default function DashboardPage() {
         Here&rsquo;s what&rsquo;s happening across the operation.
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map(({ label, value, Icon, to, accent }) => (
-          <Link
-            key={label}
-            to={to}
-            className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:scale-[0.98]"
-          >
-            <div className={`mb-3 flex h-9 w-9 items-center justify-center rounded-lg ${accent}`}>
-              <Icon className="h-5 w-5" />
-            </div>
-            <div className="text-2xl font-bold tracking-tight text-gray-900">{value}</div>
-            <div className="text-sm text-gray-500">{label}</div>
-          </Link>
+      <motion.div
+        variants={cardContainer}
+        initial="hidden"
+        animate="show"
+        className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+      >
+        {cards.map(({ label, value, Icon, to, gradient }) => (
+          <motion.div key={label} variants={cardItem}>
+            <Link to={to} className="block">
+              <SpotlightCard className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98]">
+                <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br text-white shadow-sm ${gradient}`}>
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="text-2xl font-bold tracking-tight text-gray-900">
+                  <AnimatedCounter value={value} />
+                </div>
+                <div className="text-sm text-gray-500">{label}</div>
+              </SpotlightCard>
+            </Link>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       <h2 className="mb-2 mt-8 text-lg font-semibold tracking-tight text-gray-900">Recent Challans</h2>
       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
@@ -106,9 +117,13 @@ export default function DashboardPage() {
               <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Created</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <motion.tbody variants={cardContainer} initial="hidden" animate="show" className="divide-y divide-gray-100">
             {recentChallans.map((challan, idx) => (
-              <tr key={challan.id} className={idx % 2 === 1 ? "bg-gray-50/50 hover:bg-gray-100/70" : "hover:bg-gray-50"}>
+              <motion.tr
+                key={challan.id}
+                variants={cardItem}
+                className={idx % 2 === 1 ? "bg-gray-50/50 hover:bg-gray-100/70" : "hover:bg-gray-50"}
+              >
                 <td className="px-4 py-2.5">
                   <Link to={`/challans/${challan.id}`} className="font-medium text-indigo-600 hover:underline">
                     {challan.challanNumber}
@@ -119,7 +134,7 @@ export default function DashboardPage() {
                   <Badge variant={CHALLAN_STATUS_VARIANT[challan.status]}>{challan.status}</Badge>
                 </td>
                 <td className="px-4 py-2.5 text-gray-500">{new Date(challan.createdAt).toLocaleDateString()}</td>
-              </tr>
+              </motion.tr>
             ))}
             {recentChallans.length === 0 && (
               <tr>
@@ -128,7 +143,7 @@ export default function DashboardPage() {
                 </td>
               </tr>
             )}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
     </div>

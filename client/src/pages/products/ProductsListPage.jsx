@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import api from "../../lib/api";
+import { staggerContainer, staggerItem } from "../../lib/motionVariants";
 import { useAuth } from "../../context/AuthContext";
 import Pagination from "../../components/Pagination";
 import TableSkeleton from "../../components/TableSkeleton";
@@ -55,7 +57,7 @@ export default function ProductsListPage() {
         {CAN_WRITE_ROLES.includes(user?.role) && (
           <Link
             to="/products/new"
-            className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:bg-indigo-700 active:scale-95"
+            className="inline-flex items-center gap-1.5 rounded-md bg-gradient-to-r from-indigo-600 to-indigo-500 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:from-indigo-700 hover:to-indigo-600 active:scale-95"
           >
             <PlusIcon className="h-4 w-4" />
             Add Product
@@ -107,10 +109,11 @@ export default function ProductsListPage() {
                 <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Stock</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <motion.tbody variants={staggerContainer} initial="hidden" animate="show" className="divide-y divide-gray-100">
               {data.data.map((product, idx) => (
-                <tr
+                <motion.tr
                   key={product.id}
+                  variants={staggerItem}
                   className={
                     product.isLowStock
                       ? "bg-red-50 hover:bg-red-100"
@@ -140,7 +143,7 @@ export default function ProductsListPage() {
                       </span>
                     )}
                   </td>
-                </tr>
+                </motion.tr>
               ))}
               {data.data.length === 0 && (
                 <tr>
@@ -149,7 +152,7 @@ export default function ProductsListPage() {
                   </td>
                 </tr>
               )}
-            </tbody>
+            </motion.tbody>
           </table>
         </div>
       )}

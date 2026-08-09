@@ -6,6 +6,7 @@ import Spinner from "../../components/Spinner";
 import ErrorState from "../../components/ErrorState";
 import EmptyState from "../../components/EmptyState";
 import Breadcrumbs from "../../components/Breadcrumbs";
+import SpotlightCard from "../../components/SpotlightCard";
 import Badge, { CUSTOMER_STATUS_VARIANT } from "../../components/Badge";
 import { useToast } from "../../context/ToastContext";
 
@@ -78,7 +79,8 @@ export default function CustomerDetailPage() {
         )}
       </div>
 
-      <dl className="mb-6 grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:grid-cols-2">
+      <SpotlightCard className="mb-6 rounded-lg border border-gray-200 bg-white shadow-sm">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 p-6 sm:grid-cols-2">
         <Detail label="Business" value={customer.businessName} />
         <Detail label="Mobile" value={customer.mobile} />
         <Detail label="Email" value={customer.email || "—"} />
@@ -92,6 +94,7 @@ export default function CustomerDetailPage() {
         />
         {customer.notes && <Detail label="Notes" value={customer.notes} full />}
       </dl>
+      </SpotlightCard>
 
       <h2 className="mb-2 text-lg font-semibold tracking-tight text-gray-900">Follow-up Notes</h2>
 
@@ -108,7 +111,7 @@ export default function CustomerDetailPage() {
           <button
             type="submit"
             disabled={addingNote}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:bg-indigo-700 active:scale-95 disabled:opacity-50"
+            className="rounded-md bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:from-indigo-700 hover:to-indigo-600 active:scale-95 disabled:opacity-50"
           >
             Add
           </button>

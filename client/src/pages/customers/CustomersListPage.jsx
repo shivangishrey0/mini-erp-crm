@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 import api from "../../lib/api";
+import { staggerContainer, staggerItem } from "../../lib/motionVariants";
 import { useAuth } from "../../context/AuthContext";
 import Pagination from "../../components/Pagination";
 import TableSkeleton from "../../components/TableSkeleton";
@@ -51,7 +53,7 @@ export default function CustomersListPage() {
         {CAN_WRITE_ROLES.includes(user?.role) && (
           <Link
             to="/customers/new"
-            className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:bg-indigo-700 active:scale-95"
+            className="inline-flex items-center gap-1.5 rounded-md bg-gradient-to-r from-indigo-600 to-indigo-500 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:from-indigo-700 hover:to-indigo-600 active:scale-95"
           >
             <PlusIcon className="h-4 w-4" />
             Add Customer
@@ -90,9 +92,13 @@ export default function CustomersListPage() {
                 <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <motion.tbody variants={staggerContainer} initial="hidden" animate="show" className="divide-y divide-gray-100">
               {data.data.map((customer, idx) => (
-                <tr key={customer.id} className={idx % 2 === 1 ? "bg-gray-50/50 hover:bg-gray-100/70" : "hover:bg-gray-50"}>
+                <motion.tr
+                  key={customer.id}
+                  variants={staggerItem}
+                  className={idx % 2 === 1 ? "bg-gray-50/50 hover:bg-gray-100/70" : "hover:bg-gray-50"}
+                >
                   <td className="px-4 py-2.5">
                     <Link to={`/customers/${customer.id}`} className="font-medium text-indigo-600 hover:underline">
                       {customer.name}
@@ -106,7 +112,7 @@ export default function CustomersListPage() {
                   <td className="px-4 py-2.5">
                     <Badge variant={CUSTOMER_STATUS_VARIANT[customer.status]}>{customer.status}</Badge>
                   </td>
-                </tr>
+                </motion.tr>
               ))}
               {data.data.length === 0 && (
                 <tr>
@@ -115,7 +121,7 @@ export default function CustomersListPage() {
                   </td>
                 </tr>
               )}
-            </tbody>
+            </motion.tbody>
           </table>
         </div>
       )}

@@ -174,7 +174,7 @@ export default function ChallanCreatePage() {
             type="button"
             disabled={saving || !customerId}
             onClick={() => handleSave("CONFIRMED")}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:bg-indigo-700 active:scale-95 disabled:opacity-50"
+            className="rounded-md bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:from-indigo-700 hover:to-indigo-600 active:scale-95 disabled:opacity-50"
           >
             Save &amp; Confirm
           </button>

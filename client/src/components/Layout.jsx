@@ -53,7 +53,7 @@ export default function Layout() {
     <div className="flex min-h-screen flex-col bg-gray-50 md:flex-row">
       <aside className="flex flex-col border-b border-gray-200 bg-white md:w-60 md:shrink-0 md:border-b-0 md:border-r md:shadow-sm">
         <div className="flex items-center gap-2 px-4 py-4 md:px-6 md:py-5">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-indigo-600 text-sm font-bold text-white">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-indigo-500 to-indigo-700 text-sm font-bold text-white shadow-sm">
             M
           </div>
           <span className="text-base font-bold tracking-tight text-gray-900">Mini ERP + CRM</span>

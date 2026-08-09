@@ -7,6 +7,7 @@ import Badge, { CHALLAN_STATUS_VARIANT } from "../../components/Badge";
 import Spinner from "../../components/Spinner";
 import ErrorState from "../../components/ErrorState";
 import Breadcrumbs from "../../components/Breadcrumbs";
+import SpotlightCard from "../../components/SpotlightCard";
 import ConfirmDialog from "../../components/ConfirmDialog";
 
 const CAN_WRITE_ROLES = ["ADMIN", "SALES"];
@@ -95,7 +96,7 @@ export default function ChallanDetailPage() {
               <button
                 onClick={handleConfirm}
                 disabled={acting}
-                className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:bg-indigo-700 active:scale-95 disabled:opacity-50"
+                className="rounded-md bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:from-indigo-700 hover:to-indigo-600 active:scale-95 disabled:opacity-50"
               >
                 Confirm
               </button>
@@ -131,12 +132,14 @@ export default function ChallanDetailPage() {
         <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p>
       )}
 
-      <dl className="mb-6 grid grid-cols-1 gap-x-6 gap-y-3 rounded-lg border border-gray-200 bg-white p-6 shadow-sm sm:grid-cols-2">
+      <SpotlightCard className="mb-6 rounded-lg border border-gray-200 bg-white shadow-sm">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-3 p-6 sm:grid-cols-2">
         <Detail label="Customer" value={`${challan.customer.name} — ${challan.customer.businessName}`} />
         <Detail label="Total Quantity" value={challan.totalQuantity} />
         <Detail label="Created" value={new Date(challan.createdAt).toLocaleString()} />
         <Detail label="Last Updated" value={new Date(challan.updatedAt).toLocaleString()} />
       </dl>
+      </SpotlightCard>
 
       <h2 className="mb-2 text-lg font-semibold tracking-tight text-gray-900">Items</h2>
       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
