@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
+import Spinner from "../../components/Spinner";
+import ErrorState from "../../components/ErrorState";
 
 const CAN_WRITE_ROLES = ["ADMIN", "SALES"];
 
@@ -47,8 +49,8 @@ export default function CustomerDetailPage() {
     }
   }
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  if (loading) return <Spinner />;
+  if (error) return <ErrorState message={error} onRetry={loadCustomer} />;
   if (!customer) return null;
 
   const canWrite = CAN_WRITE_ROLES.includes(user?.role);

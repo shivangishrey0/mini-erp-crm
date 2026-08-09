@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../../lib/api";
+import Spinner from "../../components/Spinner";
 
 const EMPTY_FORM = {
   name: "",
@@ -79,7 +80,7 @@ export default function CustomerFormPage() {
     }
   }
 
-  if (loading) return <p className="text-sm text-gray-500">Loading...</p>;
+  if (loading) return <Spinner />;
 
   return (
     <div className="max-w-2xl">
