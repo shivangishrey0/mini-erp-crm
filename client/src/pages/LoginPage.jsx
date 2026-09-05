@@ -98,6 +98,17 @@ export default function LoginPage() {
             {loading ? "Signing in..." : "Sign in"}
           </motion.button>
         </form>
+
+        <div className="mt-6 rounded-md border border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600">
+          <p className="mb-2 font-medium text-gray-700">Test credentials (all roles share one password)</p>
+          <ul className="space-y-1 font-mono">
+            <li>admin@example.com &middot; ADMIN</li>
+            <li>sales@example.com &middot; SALES</li>
+            <li>warehouse@example.com &middot; WAREHOUSE</li>
+            <li>accounts@example.com &middot; ACCOUNTS</li>
+          </ul>
+          <p className="mt-2 font-mono">Password123!</p>
+        </div>
       </motion.div>
     </div>
   );
