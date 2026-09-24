@@ -10,6 +10,7 @@ export const listInventoryQuerySchema = paginationQuerySchema.extend({
   search: z.string().optional(),
   category: z.string().optional(),
   locationId: z.string().optional(),
+  productId: z.string().optional(),
   lowStock: z.coerce.boolean().optional(),
 });
 

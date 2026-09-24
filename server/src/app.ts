@@ -4,6 +4,7 @@ import express from "express";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { prisma } from "./lib/prisma";
 import authRoutes from "./routes/auth.routes";
+import userRoutes from "./routes/user.routes";
 import customerRoutes from "./routes/customer.routes";
 import productRoutes from "./routes/product.routes";
 import inventoryRoutes from "./routes/inventory.routes";
@@ -37,6 +38,7 @@ export function createApp() {
   });
 
   app.use("/auth", authRoutes);
+  app.use("/users", userRoutes);
   app.use("/customers", customerRoutes);
   app.use("/products", productRoutes);
   app.use("/inventory", inventoryRoutes);

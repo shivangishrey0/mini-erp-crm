@@ -26,10 +26,11 @@ export async function list(req: Request, res: Response) {
   if (!parsed.success) {
     throw new AppError(400, formatZodError(parsed.error));
   }
-  const { page, pageSize, search, category, locationId, lowStock } = parsed.data;
+  const { page, pageSize, search, category, locationId, productId, lowStock } = parsed.data;
 
   const where: Prisma.InventoryRecordWhereInput = {
     ...(locationId ? { locationId } : {}),
+    ...(productId ? { productId } : {}),
     ...(category || search
       ? {
           product: {
