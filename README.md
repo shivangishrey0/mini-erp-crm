@@ -6,17 +6,6 @@ Also retains a lightweight Customer CRM (contact/business details, follow-up not
 Customer Orders are placed against. Role-based access for three internal staff roles: ADMIN,
 OPERATIONS, SALES.
 
-## Live Demo
-
-- **Frontend:** https://mini-erp-4srcm9cn0-shivangi-shreyas-projects.vercel.app
-- **Backend API:** https://mini-erp-crm-api-9dba.onrender.com (health check: `/health`)
-- **Test credentials:** see [Test Credentials](#test-credentials) below.
-
-The backend is on Render's free tier and spins down after ~15 minutes of inactivity — the first
-request after idle time can take 30-50 seconds to wake it back up. The database is on Supabase's
-free tier, which pauses a project after a period of inactivity — if the health check or login
-hangs/fails, resume the project from the Supabase dashboard first.
-
 ## Tech Stack
 
 - **Backend:** Node.js, TypeScript, Express, Prisma ORM 6
@@ -277,7 +266,9 @@ Defined in `server/prisma/schema.prisma`:
 
 ## Deployment
 
-Live at the URLs in [Live Demo](#live-demo) (Render + Vercel + Supabase, all free tier).
+Designed to run on Render (backend) + Vercel (frontend) + Supabase (database), all free tier, but
+not tied to any of them specifically — all config is environment-driven (see below). Not
+currently deployed; run locally per [Setup](#setup).
 
 - **Backend (Render):** root dir `server/`. Build: `npm install && npx prisma migrate deploy &&
   npm run build`. Start: `npm run start`. Env vars: `DATABASE_URL`, `DIRECT_URL`, `JWT_SECRET`,
