@@ -146,6 +146,115 @@ deployed API instead.
 
 ## Database Schema
 
+### ER Diagram
+
+```mermaid
+erDiagram
+    User ||--o{ Order : creates
+    User ||--o{ WorkOrder : "assigned to"
+    User ||--o{ Transfer : requests
+    User ||--o{ StockMovement : performs
+    User ||--o{ FollowUpNote : writes
+
+    Customer ||--o{ FollowUpNote : has
+    Customer ||--o{ Order : places
+
+    Product ||--o{ InventoryRecord : "stocked as"
+    Product ||--o{ StockMovement : "moved in"
+    Product ||--o{ OrderItem : "ordered as"
+    Product ||--o{ WorkOrder : requires
+    Product ||--o{ Transfer : moves
+
+    Location ||--o{ InventoryRecord : holds
+    Location ||--o{ StockMovement : "recorded at"
+    Location ||--o{ WorkOrder : "performed at"
+    Location ||--o{ OrderItem : "reserved at"
+    Location ||--o{ Transfer : "source of"
+    Location ||--o{ Transfer : "destination of"
+
+    Order ||--o{ OrderItem : contains
+
+    User {
+        string id PK
+        string name
+        string email UK
+        Role role
+    }
+    Customer {
+        string id PK
+        string businessName
+        CustomerType type
+        CustomerStatus status
+    }
+    Product {
+        string id PK
+        string sku UK
+        string category
+        decimal unitPrice
+        int minStockAlert
+    }
+    Location {
+        string id PK
+        string name UK
+        string code UK
+    }
+    InventoryRecord {
+        string id PK
+        string productId FK
+        string locationId FK
+        string batch
+        int physicalQty
+        int reservedQty
+    }
+    StockMovement {
+        string id PK
+        string productId FK
+        string locationId FK
+        MovementType type
+        int quantity
+        string reason
+    }
+    WorkOrder {
+        string id PK
+        string workOrderNumber UK
+        string locationId FK
+        string productId FK
+        int requiredQty
+        string assignedUserId FK
+        WorkOrderStatus status
+    }
+    Transfer {
+        string id PK
+        string transferNumber UK
+        string sourceLocationId FK
+        string destinationLocationId FK
+        string productId FK
+        int quantity
+        TransferStatus status
+    }
+    Order {
+        string id PK
+        string orderNumber UK
+        string customerId FK
+        OrderStatus status
+        int totalQuantity
+    }
+    OrderItem {
+        string id PK
+        string orderId FK
+        string productId FK
+        string locationId FK
+        int quantity
+    }
+```
+
+`InventoryRecord` is the entity that answers "how much of this Item exists at this Location in
+this Batch" — it's the only place `physicalQty`/`reservedQty` are stored; everything else
+(shortage on a Work Order, dispatch/receive on a Transfer, reserve/fulfill on an Order) reads or
+mutates it through `lib/inventoryLock.ts`.
+
+### Entities
+
 Defined in `server/prisma/schema.prisma`:
 
 - **User** — staff accounts, one of 3 roles (ADMIN / OPERATIONS / SALES)
