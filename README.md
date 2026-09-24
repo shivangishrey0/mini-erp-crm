@@ -1,9 +1,10 @@
-# Mini ERP + CRM Operations Portal
+# Mini Operations ERP
 
-A small internal ERP/CRM case study for a wholesale/distribution company. Covers customer
-relationship management, product & inventory tracking, and sales challan (delivery note)
-issuance, with role-based access for four internal staff roles: ADMIN, SALES, WAREHOUSE,
-ACCOUNTS.
+A small internal Operations ERP for a company running multiple locations, covering the flow:
+**Inventory → Work Order → Stock Check → Internal Transfer / Shortage → Customer Reservation.**
+Also retains a lightweight Customer CRM (contact/business details, follow-up notes) that
+Customer Orders are placed against. Role-based access for three internal staff roles: ADMIN,
+OPERATIONS, SALES.
 
 ## Live Demo
 
@@ -12,7 +13,9 @@ ACCOUNTS.
 - **Test credentials:** see [Test Credentials](#test-credentials) below.
 
 The backend is on Render's free tier and spins down after ~15 minutes of inactivity — the first
-request after idle time can take 30-50 seconds to wake it back up.
+request after idle time can take 30-50 seconds to wake it back up. The database is on Supabase's
+free tier, which pauses a project after a period of inactivity — if the health check or login
+hangs/fails, resume the project from the Supabase dashboard first.
 
 ## Tech Stack
 
@@ -20,6 +23,7 @@ request after idle time can take 30-50 seconds to wake it back up.
 - **Database:** PostgreSQL (Supabase)
 - **Auth:** JWT (`jsonwebtoken`, `bcryptjs`), role-based access control
 - **Validation:** Zod
+- **Testing:** Jest + Supertest, against an isolated Postgres schema
 - **Frontend:** React + Vite, Tailwind CSS, react-router-dom, axios, Framer Motion, lucide-react
 
 ## Architecture
@@ -34,27 +38,36 @@ mini-erp-crm/
 (`authMiddleware` verifies the JWT, `roleGuard([...])` checks the role) — no business logic
 there. `controllers/` validate the request against a Zod schema, then query/mutate via Prisma,
 throwing `AppError(status, message)` for expected failures (validation, not found, business
-rules) so error formatting stays consistent everywhere.
+rules) so error formatting stays consistent everywhere. `app.ts` builds the Express app
+(routes+middleware, no listener) so tests can import it directly with Supertest; `index.ts` is a
+thin `app.listen()` wrapper.
 
-**Transaction pattern** (the core business logic): every stock-changing operation — manual
-adjustment and challan confirm/cancel — validates every line *before* writing anything, then
-performs all writes inside one `prisma.$transaction`. Confirming a challan aggregates requested
-quantity **per product** (not per line) before checking it against current stock, so two line
-items for the same product can't each pass validation individually while their combined
-quantity pushes stock negative.
+**Concurrency-safe stock mutations (the core business logic):** every flow that changes stock —
+reserving an order, dispatching/receiving a transfer, completing a work order, a manual inventory
+adjustment — goes through `lib/inventoryLock.ts`'s `lockInventoryRecord()`, which takes a raw
+`SELECT ... FOR UPDATE` on the target `InventoryRecord` row inside the caller's `$transaction`
+before validating/writing. A plain read-then-check-then-write lets two concurrent requests both
+read the same stale quantity and both pass validation; the row lock forces the second transaction
+to wait and see the first one's committed result instead. Multi-line operations (an order with
+several items, a work order consuming across batches) lock rows in a fixed sort order so
+concurrent operations touching overlapping rows can't deadlock each other. Receiving a transfer
+additionally locks the `Transfer` row itself and checks its status before touching any inventory,
+which is what actually prevents the same transfer being received twice under concurrent requests
+(not just a pre-check a race could slip past).
 
-**Frontend:** mirrors the backend's module boundaries (`pages/customers`, `pages/products`,
-`pages/challans`, each with List/Form/Detail). Auth state lives in React Context; an axios
-interceptor attaches the JWT to every request and clears storage + redirects to `/login` on any
-`401`.
+**Frontend:** mirrors the backend's module boundaries (`pages/customers`, `pages/workorders`,
+`pages/transfers`, `pages/orders`, plus `pages/InventoryListPage.jsx` and `pages/products` for
+the item catalog). Auth state lives in React Context; an axios interceptor attaches the JWT to
+every request and clears storage + redirects to `/login` on any `401`.
 
 ## Setup
 
 ### Backend
 1. `cd server && npm install`
 2. Copy `.env.example` to `.env` and fill in real values (see table below)
-3. `npx prisma migrate dev`
-4. `npx prisma db seed` — creates the 4 test users
+3. `npx prisma migrate deploy` (applies existing migrations) — for a brand new database, or after
+   pulling schema changes
+4. `npx prisma db seed` — creates the 3 test users, 2 locations, and starter inventory
 5. `npm run dev` — runs on `http://localhost:<PORT>`
 6. `GET /health` should return `{ "status": "ok" }`
 
@@ -71,18 +84,18 @@ interceptor attaches the JWT to every request and clears storage + redirects to 
 | `DIRECT_URL` | Supabase Session pooler, port 5432 — used by Prisma Migrate |
 | `JWT_SECRET` | Secret used to sign/verify JWTs |
 | `PORT` | Port the Express server listens on |
-| `CLIENT_URL` | Deployed frontend origin — CORS only allows requests from this |
+| `CLIENT_URL` | Deployed frontend origin — CORS falls back to this if `CORS_ORIGINS` is unset |
+| `CORS_ORIGINS` | Optional comma-separated allow-list, takes priority over `CLIENT_URL` |
 
 ## Test Credentials
 
-All 4 roles share one password (dev/test-only, never do this in production).
+All 3 roles share one password (dev/test-only, never do this in production).
 
 | Email | Password | Role |
 |---|---|---|
 | `admin@example.com` | `Password123!` | ADMIN |
+| `operations@example.com` | `Password123!` | OPERATIONS |
 | `sales@example.com` | `Password123!` | SALES |
-| `warehouse@example.com` | `Password123!` | WAREHOUSE |
-| `accounts@example.com` | `Password123!` | ACCOUNTS |
 
 ## API Endpoints
 
@@ -91,23 +104,37 @@ All 4 roles share one password (dev/test-only, never do this in production).
 | GET | `/health` | none | Liveness + DB connectivity check |
 | POST | `/auth/login` | none | Returns `{ token, user }` |
 | GET | `/auth/me` | Bearer token | Current user's profile |
+| GET | `/users` | any role | List users, optional `?role=` filter (assignee pickers) |
 | GET | `/customers` | any role | Paginated list. Query: `page`, `pageSize`, `search`, `type`, `status` |
 | GET | `/customers/:id` | any role | Detail, includes follow-up notes |
 | GET | `/customers/:id/follow-ups` | any role | Paginated follow-up notes |
 | POST | `/customers` | ADMIN, SALES | Create |
 | PATCH | `/customers/:id` | ADMIN, SALES | Partial update |
 | POST | `/customers/:id/follow-ups` | ADMIN, SALES | Add a follow-up note |
-| GET | `/products` | any role | Paginated list. Query: `page`, `pageSize`, `search`, `category`, `lowStock` |
-| GET | `/products/:id` | any role | Detail, includes computed `isLowStock` |
-| GET | `/products/:id/movements` | any role | Paginated stock movement history |
-| POST | `/products` | ADMIN, WAREHOUSE | Create (starts at `currentStock: 0`) |
-| PATCH | `/products/:id` | ADMIN, WAREHOUSE | Edit catalog fields — never `currentStock` |
-| POST | `/products/:id/stock-movements` | ADMIN, WAREHOUSE | Manual IN/OUT; `400` if OUT exceeds stock |
-| GET | `/challans` | any role | Paginated list. Query: `page`, `pageSize`, `status`, `customerId` |
-| GET | `/challans/:id` | any role | Detail (customer + line items) |
-| POST | `/challans` | ADMIN, SALES | Create — `{ customerId, items: [{productId, quantity}], status? }` |
-| POST | `/challans/:id/confirm` | ADMIN, SALES | DRAFT → CONFIRMED: deducts stock, logs OUT movements |
-| POST | `/challans/:id/cancel` | ADMIN, SALES | → CANCELLED; restores stock if it was CONFIRMED |
+| GET | `/locations` | any role | List locations |
+| POST | `/locations` | ADMIN | Create |
+| GET | `/products` | any role | Catalog list. Query: `page`, `pageSize`, `search`, `category` |
+| GET | `/products/:id` | any role | Catalog detail |
+| POST | `/products` | ADMIN, OPERATIONS | Create (catalog only — no stock fields) |
+| PATCH | `/products/:id` | ADMIN, OPERATIONS | Edit catalog fields |
+| GET | `/inventory` | any role | InventoryRecord list (Item x Location x Batch). Query: `page`, `pageSize`, `search`, `category`, `locationId`, `productId`, `lowStock` |
+| GET | `/inventory/:id` | any role | Single record, with computed `availableQty`/`isLowStock` |
+| GET | `/inventory/:id/movements` | any role | Paginated stock movement history for that record |
+| POST | `/inventory/adjust` | ADMIN, OPERATIONS | Manual IN/OUT against `{productId, locationId, batch, quantity, type, reason}` |
+| GET | `/work-orders` | any role | Paginated list, each with computed `shortage`. Query: `page`, `pageSize`, `status`, `locationId` |
+| GET | `/work-orders/:id` | any role | Detail with `availableAtLocation`/`shortage` |
+| POST | `/work-orders` | ADMIN | Create — `{locationId, productId, requiredQty, assignedUserId}` |
+| PATCH | `/work-orders/:id/status` | ADMIN, OPERATIONS | Advance one step: ASSIGNED → IN_PROGRESS → COMPLETED (completion consumes stock; fails if shortage unresolved) |
+| GET | `/transfers` | any role | Paginated list. Query: `page`, `pageSize`, `status` |
+| GET | `/transfers/:id` | any role | Detail |
+| POST | `/transfers` | ADMIN, OPERATIONS | Request — `{sourceLocationId, destinationLocationId, productId, batch?, quantity}` |
+| POST | `/transfers/:id/dispatch` | ADMIN, OPERATIONS | REQUESTED → DISPATCHED: decrements source |
+| POST | `/transfers/:id/receive` | ADMIN, OPERATIONS | DISPATCHED → RECEIVED: increments destination; rejects if not DISPATCHED (no double-receive) |
+| GET | `/orders` | any role | Paginated list. Query: `page`, `pageSize`, `status`, `customerId` |
+| GET | `/orders/:id` | any role | Detail (customer + line items) |
+| POST | `/orders` | ADMIN, SALES | Create — reserves stock immediately. `{customerId, items: [{productId, locationId, batch?, quantity}]}` |
+| POST | `/orders/:id/fulfill` | ADMIN, SALES | RESERVED → FULFILLED: converts reservation into a physical deduction (shipped) |
+| POST | `/orders/:id/cancel` | ADMIN, SALES | Releases the reservation (if RESERVED) or restocks (if FULFILLED) |
 
 ### Postman Collection
 
@@ -121,14 +148,22 @@ deployed API instead.
 
 Defined in `server/prisma/schema.prisma`:
 
-- **User** — staff accounts, one of 4 roles
+- **User** — staff accounts, one of 3 roles (ADMIN / OPERATIONS / SALES)
 - **Customer** — CRM record (type, status, follow-up date, notes)
 - **FollowUpNote** — many-per-customer follow-up log, linked to the user who wrote it
-- **Product** — SKU, category, unit price, current stock, min stock alert, location
-- **StockMovement** — audit log of every stock change (IN/OUT, quantity, reason, who, when)
-- **Challan** — sales delivery note (DRAFT / CONFIRMED / CANCELLED)
-- **ChallanItem** — line items; stores a snapshot of `productName`/`sku`/`unitPrice` at creation
-  time (in addition to the live `productId`), so historical challans stay accurate even if a
+- **Product** — catalog record only: SKU, category, unit price, min stock alert (no stock fields)
+- **Location** — a physical site (warehouse, branch, …)
+- **InventoryRecord** — the actual stock: one row per `Product x Location x Batch`, with
+  `physicalQty` and `reservedQty` (`availableQty = physicalQty - reservedQty` is computed in the
+  API response, not stored)
+- **StockMovement** — audit log of every stock change (IN/OUT, quantity, reason, product,
+  location, batch, who, when)
+- **WorkOrder** — a material request against a location (required quantity, assigned user,
+  ASSIGNED / IN_PROGRESS / COMPLETED)
+- **Transfer** — an internal stock move between two locations (REQUESTED / DISPATCHED / RECEIVED)
+- **Order** — a customer order (RESERVED / FULFILLED / CANCELLED)
+- **OrderItem** — line items; stores a snapshot of `productName`/`sku`/`unitPrice` at creation
+  time (in addition to the live `productId`), so historical orders stay accurate even if a
   product's price or name changes later
 
 ## Deployment
@@ -146,26 +181,54 @@ Live at the URLs in [Live Demo](#live-demo) (Render + Vercel + Supabase, all fre
   localhost default, deploy the frontend once the backend URL exists, then go back and update
   `CLIENT_URL` on the backend and redeploy.
 
+## How to Test
+
+```
+cd server
+npm test
+```
+
+Spins up an isolated `test` schema on the same Postgres instance as dev (via `prisma db push`,
+not migration replay), runs Jest + Supertest against the real Express app (`src/app.ts`,
+imported directly — no port binding), and drops the schema afterward. Real Postgres, not a
+mocked Prisma client, since the behavior under test is row-locking/transaction semantics that a
+mock can't exercise meaningfully. Covers the 5 mandatory cases plus a concurrency proof:
+
+1. Cannot reserve more than available inventory (`tests/order.test.ts`)
+2. Cannot transfer more than available inventory (`tests/transfer.test.ts`)
+3. Destination stock increases only after transfer receipt (`tests/transfer.test.ts`)
+4. Same transfer cannot be received twice (`tests/transfer.test.ts`)
+5. Unauthorized user cannot perform a restricted operation (`tests/auth.test.ts`)
+6. *(bonus)* Two concurrent over-committing reservations — only one succeeds (`tests/order.test.ts`)
+
+Also covers work-order shortage calculation and forced-single-step status transitions
+(`tests/workOrder.test.ts`).
+
 ## Key Design Decisions
 
-- **Stock never goes negative** — enforced inside a Prisma `$transaction`, validated per
-  *product* (quantities aggregated across duplicate line items first) before any write.
-- **`currentStock` is never directly editable** — `PATCH /products/:id` excludes it entirely;
-  the only way to change it is the stock-movements endpoint, so the audit log has zero
-  exceptions.
-- **Challan confirm/cancel are all-or-nothing** — `confirmChallanTx` takes a
-  `Prisma.TransactionClient`, so it runs inside the caller's transaction whether that's the
-  dedicated confirm endpoint or a create-and-confirm-in-one-call. Cancelling a CONFIRMED challan
-  restores stock via a reversal `IN` movement; cancelling a DRAFT has no stock impact.
-  Cancelling an already-cancelled challan is rejected with `400`.
+- **Row-level locking, not just transactions** — see [Architecture](#architecture) above.
+  `$transaction` alone (Postgres's default READ COMMITTED isolation) does not stop two concurrent
+  requests from both reading the same pre-write quantity; `SELECT ... FOR UPDATE` inside the
+  transaction does.
+- **Inventory is `Product x Location x Batch`, not a single number on Product** — matches the
+  brief's model directly and is what makes Work Orders (shortage at *a* location) and Transfers
+  (moving stock *between* locations) meaningful.
+- **Orders reserve at creation, not at a separate confirm step** — `reservedQty` is incremented
+  immediately and validated against `Available` (`physical - reserved`); `fulfill` later converts
+  that reservation into an actual physical deduction (shipped), and `cancel` reverses whichever of
+  the two is currently in effect.
+- **`currentStock`/`location` fields don't exist on Product anymore** — the only way to see or
+  change stock is through `/inventory`, so the audit log (`StockMovement`) and the
+  physical/reserved split have zero exceptions.
 - **Login returns the same `401` for "no such user" and "wrong password"** — can't be used to
   enumerate registered emails.
-- **Customer CRM has no DELETE endpoint** — the brief only asks for add/edit/search/detail/
-  follow-ups; deactivation goes through `PATCH` with `status: "INACTIVE"` instead.
 - **Read access is open to any authenticated role; writes are scoped to the role that owns that
-  function** — SALES for customers/challans, WAREHOUSE for products — matching how the 4 roles
-  actually divide responsibility, while everyone can still read across modules (e.g. Warehouse
-  needs to see what a challan ordered).
+  function** — SALES for customers/orders, OPERATIONS (+ ADMIN) for inventory/transfers/work-order
+  status, ADMIN-only for creating a Work Order (per the brief) — while everyone can still read
+  across modules.
+- **CORS is env-driven** (`CORS_ORIGINS` / `CLIENT_URL`), not hardcoded — the brief requires
+  environment-based configuration, and it means a new deployed frontend origin never needs a code
+  change.
 - **Prisma pinned to v6, not v7** — avoids v7's driver-adapter/`prisma.config.ts` requirement;
   `.env` is read directly via the schema's `datasource` block.
 - **JWT stored in `localStorage`, not an `httpOnly` cookie** — standard SPA pattern; trades some
@@ -173,21 +236,23 @@ Live at the URLs in [Live Demo](#live-demo) (Render + Vercel + Supabase, all fre
 
 ## Known Limitations
 
-- **No automated test suite.** Verification was manual: Postman/`newman` for the backend,
-  Playwright passes for the frontend after each feature. No repeatable Jest/Vitest suite is
-  committed.
-- **Challan numbering can theoretically race.** `CH-<year>-<0001>` uses a count-based sequence
-  inside the create transaction — correct at this project's scale, but two truly simultaneous
-  creates could compute the same count before either commits.
+- **Work order completion consumes from the DEFAULT/first-available batches at a location in a
+  fixed order**, not a configurable FIFO/FEFO policy — fine at this project's scale.
+- **Transfer/Order line items can't be partially received or partially fulfilled** — a transfer is
+  received (or not) as a whole, and an order line reserves/ships its full requested quantity.
+  Partial receipt is a natural next step (see the brief's example "Live Verification" changes).
+- **Order/Transfer numbering can theoretically race.** `SO-<year>-<0001>`/`TR-<year>-<0001>` use a
+  count-based sequence inside the create transaction — correct at this project's scale, but two
+  truly simultaneous creates could compute the same count before either commits.
 - **Low-stock filtering runs in application code, not the database** — Prisma can't compare two
-  columns of the same row (`currentStock < minStockAlert`) in a `where` clause without raw SQL.
-- **CORS allows exactly one origin** (`CLIENT_URL`) — fine for this project's single frontend,
-  would need an allow-list if multiple frontends ever needed access.
+  columns of the same row (`physicalQty < product.minStockAlert`) in a `where` clause without raw
+  SQL.
+- **Test suite hits Supabase over the network** (an isolated `test` schema, not a local
+  container) — occasionally slower or flakier under load than a local Postgres would be; rerun on
+  a timeout.
 - **No refresh-token flow.** The JWT expires after 8h and the user has to log in again.
 - **No password-reset flow, no rate-limiting on login.**
-- **Product movement history on the frontend only shows the first page** — the backend endpoint
-  is paginated, but the UI has no "load more" control wired to it yet.
-- **No notification system** — follow-up due dates and low-stock indicators are visible in the
-  UI, but nothing proactively alerts anyone.
+- **No notification system** — shortages and low-stock indicators are visible in the UI, but
+  nothing proactively alerts anyone.
 - **No edit history for Customer or Product records themselves** — `StockMovement` fully audits
   stock changes, but there's no log of who changed a customer's address or a product's price.
