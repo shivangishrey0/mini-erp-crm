@@ -9,12 +9,18 @@ import DashboardPage from "./pages/DashboardPage";
 import CustomersListPage from "./pages/customers/CustomersListPage";
 import CustomerFormPage from "./pages/customers/CustomerFormPage";
 import CustomerDetailPage from "./pages/customers/CustomerDetailPage";
-import ProductsListPage from "./pages/products/ProductsListPage";
 import ProductFormPage from "./pages/products/ProductFormPage";
 import ProductDetailPage from "./pages/products/ProductDetailPage";
-import ChallansListPage from "./pages/challans/ChallansListPage";
-import ChallanCreatePage from "./pages/challans/ChallanCreatePage";
-import ChallanDetailPage from "./pages/challans/ChallanDetailPage";
+import InventoryListPage from "./pages/InventoryListPage";
+import WorkOrdersListPage from "./pages/workorders/WorkOrdersListPage";
+import WorkOrderCreatePage from "./pages/workorders/WorkOrderCreatePage";
+import WorkOrderDetailPage from "./pages/workorders/WorkOrderDetailPage";
+import TransfersListPage from "./pages/transfers/TransfersListPage";
+import TransferCreatePage from "./pages/transfers/TransferCreatePage";
+import TransferDetailPage from "./pages/transfers/TransferDetailPage";
+import OrdersListPage from "./pages/orders/OrdersListPage";
+import OrderCreatePage from "./pages/orders/OrderCreatePage";
+import OrderDetailPage from "./pages/orders/OrderDetailPage";
 
 export default function App() {
   return (
@@ -41,14 +47,22 @@ export default function App() {
                 <Route path="/customers/:id" element={<CustomerDetailPage />} />
                 <Route path="/customers/:id/edit" element={<CustomerFormPage />} />
 
-                <Route path="/products" element={<ProductsListPage />} />
+                <Route path="/inventory" element={<InventoryListPage />} />
                 <Route path="/products/new" element={<ProductFormPage />} />
                 <Route path="/products/:id" element={<ProductDetailPage />} />
                 <Route path="/products/:id/edit" element={<ProductFormPage />} />
 
-                <Route path="/challans" element={<ChallansListPage />} />
-                <Route path="/challans/new" element={<ChallanCreatePage />} />
-                <Route path="/challans/:id" element={<ChallanDetailPage />} />
+                <Route path="/work-orders" element={<WorkOrdersListPage />} />
+                <Route path="/work-orders/new" element={<WorkOrderCreatePage />} />
+                <Route path="/work-orders/:id" element={<WorkOrderDetailPage />} />
+
+                <Route path="/transfers" element={<TransfersListPage />} />
+                <Route path="/transfers/new" element={<TransferCreatePage />} />
+                <Route path="/transfers/:id" element={<TransferDetailPage />} />
+
+                <Route path="/orders" element={<OrdersListPage />} />
+                <Route path="/orders/new" element={<OrderCreatePage />} />
+                <Route path="/orders/:id" element={<OrderDetailPage />} />
               </Route>
             </Routes>
           </AuthProvider>

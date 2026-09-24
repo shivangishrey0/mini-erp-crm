@@ -8,13 +8,13 @@ import Pagination from "../../components/Pagination";
 import TableSkeleton from "../../components/TableSkeleton";
 import ErrorState from "../../components/ErrorState";
 import EmptyState from "../../components/EmptyState";
-import Badge, { CHALLAN_STATUS_VARIANT } from "../../components/Badge";
-import { PlusIcon, ChallansIcon } from "../../components/icons";
+import Badge, { ORDER_STATUS_VARIANT } from "../../components/Badge";
+import { PlusIcon, OrdersIcon } from "../../components/icons";
 
 const CAN_WRITE_ROLES = ["ADMIN", "SALES"];
-const STATUSES = ["DRAFT", "CONFIRMED", "CANCELLED"];
+const STATUSES = ["RESERVED", "FULFILLED", "CANCELLED"];
 
-export default function ChallansListPage() {
+export default function OrdersListPage() {
   const { user } = useAuth();
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
@@ -29,12 +29,12 @@ export default function ChallansListPage() {
     setError("");
 
     api
-      .get("/challans", { params: { page, status: status || undefined } })
+      .get("/orders", { params: { page, status: status || undefined } })
       .then((res) => {
         if (!cancelled) setData(res.data);
       })
       .catch(() => {
-        if (!cancelled) setError("Failed to load challans.");
+        if (!cancelled) setError("Failed to load orders.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -48,14 +48,14 @@ export default function ChallansListPage() {
   return (
     <div>
       <div className="mb-5 flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Challans</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900">Customer Orders</h1>
         {CAN_WRITE_ROLES.includes(user?.role) && (
           <Link
-            to="/challans/new"
+            to="/orders/new"
             className="inline-flex items-center gap-1.5 rounded-md bg-gradient-to-r from-indigo-600 to-indigo-500 px-3.5 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:from-indigo-700 hover:to-indigo-600 active:scale-95"
           >
             <PlusIcon className="h-4 w-4" />
-            Create Challan
+            Create Order
           </Link>
         )}
       </div>
@@ -77,16 +77,14 @@ export default function ChallansListPage() {
       </select>
 
       {loading && <TableSkeleton columns={5} />}
-      {!loading && error && (
-        <ErrorState message={error} onRetry={() => setReloadCounter((c) => c + 1)} />
-      )}
+      {!loading && error && <ErrorState message={error} onRetry={() => setReloadCounter((c) => c + 1)} />}
 
       {!loading && !error && (
         <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Challan #</th>
+                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Order #</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Customer</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Status</th>
                 <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Total Qty</th>
@@ -94,29 +92,29 @@ export default function ChallansListPage() {
               </tr>
             </thead>
             <motion.tbody variants={staggerContainer} initial="hidden" animate="show" className="divide-y divide-gray-100">
-              {data.data.map((challan, idx) => (
+              {data.data.map((order, idx) => (
                 <motion.tr
-                  key={challan.id}
+                  key={order.id}
                   variants={staggerItem}
                   className={idx % 2 === 1 ? "bg-gray-50/50 hover:bg-gray-100/70" : "hover:bg-gray-50"}
                 >
                   <td className="px-4 py-2.5">
-                    <Link to={`/challans/${challan.id}`} className="font-medium text-indigo-600 hover:underline">
-                      {challan.challanNumber}
+                    <Link to={`/orders/${order.id}`} className="font-medium text-indigo-600 hover:underline">
+                      {order.orderNumber}
                     </Link>
                   </td>
-                  <td className="px-4 py-2.5 text-gray-700">{challan.customer.businessName}</td>
+                  <td className="px-4 py-2.5 text-gray-700">{order.customer.businessName}</td>
                   <td className="px-4 py-2.5">
-                    <Badge variant={CHALLAN_STATUS_VARIANT[challan.status]}>{challan.status}</Badge>
+                    <Badge variant={ORDER_STATUS_VARIANT[order.status]}>{order.status}</Badge>
                   </td>
-                  <td className="px-4 py-2.5 text-gray-700">{challan.totalQuantity}</td>
-                  <td className="px-4 py-2.5 text-gray-500">{new Date(challan.createdAt).toLocaleDateString()}</td>
+                  <td className="px-4 py-2.5 text-gray-700">{order.totalQuantity}</td>
+                  <td className="px-4 py-2.5 text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</td>
                 </motion.tr>
               ))}
               {data.data.length === 0 && (
                 <tr>
                   <td colSpan={5}>
-                    <EmptyState icon={ChallansIcon} message="No challans found." />
+                    <EmptyState icon={OrdersIcon} message="No orders found." />
                   </td>
                 </tr>
               )}

@@ -5,26 +5,32 @@ import Spinner from "../../components/Spinner";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import { useToast } from "../../context/ToastContext";
 
-export default function ChallanCreatePage() {
+export default function OrderCreatePage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
 
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
 
   const [customerId, setCustomerId] = useState("");
-  const [items, setItems] = useState([{ productId: "", quantity: 1 }]);
+  const [items, setItems] = useState([{ productId: "", locationId: "", quantity: 1 }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([api.get("/customers", { params: { pageSize: 100 } }), api.get("/products", { params: { pageSize: 100 } })])
-      .then(([customersRes, productsRes]) => {
+    Promise.all([
+      api.get("/customers", { params: { pageSize: 100 } }),
+      api.get("/products", { params: { pageSize: 100 } }),
+      api.get("/locations"),
+    ])
+      .then(([customersRes, productsRes, locationsRes]) => {
         setCustomers(customersRes.data.data);
         setProducts(productsRes.data.data);
+        setLocations(locationsRes.data.data);
       })
-      .catch(() => setError("Failed to load customers/products."))
+      .catch(() => setError("Failed to load customers/products/locations."))
       .finally(() => setLoadingOptions(false));
   }, []);
 
@@ -33,7 +39,7 @@ export default function ChallanCreatePage() {
   }
 
   function addItem() {
-    setItems((prev) => [...prev, { productId: "", quantity: 1 }]);
+    setItems((prev) => [...prev, { productId: "", locationId: "", quantity: 1 }]);
   }
 
   function removeItem(index) {
@@ -49,24 +55,24 @@ export default function ChallanCreatePage() {
     return product ? sum + Number(product.unitPrice) * Number(item.quantity || 0) : sum;
   }, 0);
 
-  async function handleSave(status) {
+  async function handleSubmit(event) {
+    event.preventDefault();
     setSaving(true);
     setError("");
 
     const payload = {
       customerId,
       items: items
-        .filter((item) => item.productId && Number(item.quantity) > 0)
-        .map((item) => ({ productId: item.productId, quantity: Number(item.quantity) })),
-      status,
+        .filter((item) => item.productId && item.locationId && Number(item.quantity) > 0)
+        .map((item) => ({ productId: item.productId, locationId: item.locationId, quantity: Number(item.quantity) })),
     };
 
     try {
-      const res = await api.post("/challans", payload);
-      showToast(status === "CONFIRMED" ? "Challan created and confirmed" : "Challan saved as draft");
-      navigate(`/challans/${res.data.challan.id}`);
+      const res = await api.post("/orders", payload);
+      showToast("Order created — stock reserved");
+      navigate(`/orders/${res.data.order.id}`);
     } catch (err) {
-      setError(err.response?.data?.error ?? "Failed to save challan.");
+      setError(err.response?.data?.error ?? "Failed to create order.");
     } finally {
       setSaving(false);
     }
@@ -76,14 +82,13 @@ export default function ChallanCreatePage() {
 
   return (
     <div className="max-w-3xl">
-      <Breadcrumbs items={[{ label: "Dashboard", to: "/" }, { label: "Challans", to: "/challans" }, { label: "New" }]} />
-      <h1 className="mb-5 text-2xl font-bold tracking-tight text-gray-900">Create Challan</h1>
+      <Breadcrumbs items={[{ label: "Dashboard", to: "/" }, { label: "Customer Orders", to: "/orders" }, { label: "New" }]} />
+      <h1 className="mb-5 text-2xl font-bold tracking-tight text-gray-900">Create Order</h1>
+      <p className="mb-5 text-sm text-gray-500">
+        Placing this order reserves the requested quantity immediately at each item&rsquo;s location.
+      </p>
 
-      {/* Plain onSubmit preventDefault, not a real submit handler - there are
-          two distinct actions (draft vs confirm), so Enter shouldn't trigger
-          either implicitly. The <form> wrapper is still worth having for
-          semantics/accessibility (label associations, browser autofill). */}
-      <form onSubmit={(event) => event.preventDefault()} className="space-y-5 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+      <form onSubmit={handleSubmit} className="space-y-5 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
         <div>
           <label className="block text-sm font-medium text-gray-700">
             Customer <span className="text-red-500">*</span>
@@ -116,10 +121,23 @@ export default function ChallanCreatePage() {
                     onChange={(event) => updateItem(index, "productId", event.target.value)}
                     className="flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   >
-                    <option value="">Select a product...</option>
+                    <option value="">Select an item...</option>
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
-                        {p.name} ({p.sku}) — {p.currentStock} in stock
+                        {p.name} ({p.sku})
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    required
+                    value={item.locationId}
+                    onChange={(event) => updateItem(index, "locationId", event.target.value)}
+                    className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="">Location...</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
                       </option>
                     ))}
                   </select>
@@ -161,24 +179,13 @@ export default function ChallanCreatePage() {
 
         {error && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
 
-        <div className="flex gap-3">
-          <button
-            type="button"
-            disabled={saving || !customerId}
-            onClick={() => handleSave("DRAFT")}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-transform duration-100 hover:bg-gray-100 active:scale-95 disabled:opacity-50"
-          >
-            Save as Draft
-          </button>
-          <button
-            type="button"
-            disabled={saving || !customerId}
-            onClick={() => handleSave("CONFIRMED")}
-            className="rounded-md bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:from-indigo-700 hover:to-indigo-600 active:scale-95 disabled:opacity-50"
-          >
-            Save &amp; Confirm
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={saving || !customerId}
+          className="rounded-md bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:from-indigo-700 hover:to-indigo-600 active:scale-95 disabled:opacity-50"
+        >
+          {saving ? "Reserving..." : "Create Order (Reserve Stock)"}
+        </button>
       </form>
     </div>
   );

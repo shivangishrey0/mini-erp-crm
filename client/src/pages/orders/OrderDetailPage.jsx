@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import api from "../../lib/api";
 import { useAuth } from "../../context/AuthContext";
 import { useToast } from "../../context/ToastContext";
-import Badge, { CHALLAN_STATUS_VARIANT } from "../../components/Badge";
+import Badge, { ORDER_STATUS_VARIANT } from "../../components/Badge";
 import Spinner from "../../components/Spinner";
 import ErrorState from "../../components/ErrorState";
 import Breadcrumbs from "../../components/Breadcrumbs";
@@ -12,30 +12,30 @@ import ConfirmDialog from "../../components/ConfirmDialog";
 
 const CAN_WRITE_ROLES = ["ADMIN", "SALES"];
 
-export default function ChallanDetailPage() {
+export default function OrderDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
   const { showToast } = useToast();
   const canWrite = CAN_WRITE_ROLES.includes(user?.role);
 
-  const [challan, setChallan] = useState(null);
+  const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [acting, setActing] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
-  function loadChallan() {
+  function loadOrder() {
     return api
-      .get(`/challans/${id}`)
-      .then((res) => setChallan(res.data.challan))
-      .catch(() => setError("Failed to load challan."));
+      .get(`/orders/${id}`)
+      .then((res) => setOrder(res.data.order))
+      .catch(() => setError("Failed to load order."));
   }
 
   function retryLoad() {
     setLoading(true);
     setError("");
-    loadChallan().finally(() => setLoading(false));
+    loadOrder().finally(() => setLoading(false));
   }
 
   useEffect(() => {
@@ -43,15 +43,15 @@ export default function ChallanDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function handleConfirm() {
+  async function handleFulfill() {
     setActing(true);
     setActionError("");
     try {
-      await api.post(`/challans/${id}/confirm`);
-      showToast("Challan confirmed");
-      await loadChallan();
+      await api.post(`/orders/${id}/fulfill`);
+      showToast("Order fulfilled");
+      await loadOrder();
     } catch (err) {
-      setActionError(err.response?.data?.error ?? "Failed to confirm challan.");
+      setActionError(err.response?.data?.error ?? "Failed to fulfill order.");
     } finally {
       setActing(false);
     }
@@ -62,11 +62,11 @@ export default function ChallanDetailPage() {
     setActing(true);
     setActionError("");
     try {
-      await api.post(`/challans/${id}/cancel`);
-      showToast("Challan cancelled");
-      await loadChallan();
+      await api.post(`/orders/${id}/cancel`);
+      showToast("Order cancelled");
+      await loadOrder();
     } catch (err) {
-      setActionError(err.response?.data?.error ?? "Failed to cancel challan.");
+      setActionError(err.response?.data?.error ?? "Failed to cancel order.");
     } finally {
       setActing(false);
     }
@@ -74,34 +74,34 @@ export default function ChallanDetailPage() {
 
   if (loading) return <Spinner />;
   if (error) return <ErrorState message={error} onRetry={retryLoad} />;
-  if (!challan) return null;
+  if (!order) return null;
 
-  const total = challan.items.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
+  const total = order.items.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
 
   return (
     <div className="max-w-3xl">
       <Breadcrumbs
-        items={[{ label: "Dashboard", to: "/" }, { label: "Challans", to: "/challans" }, { label: challan.challanNumber }]}
+        items={[{ label: "Dashboard", to: "/" }, { label: "Customer Orders", to: "/orders" }, { label: order.orderNumber }]}
       />
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">{challan.challanNumber}</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">{order.orderNumber}</h1>
           <div className="mt-1.5">
-            <Badge variant={CHALLAN_STATUS_VARIANT[challan.status]}>{challan.status}</Badge>
+            <Badge variant={ORDER_STATUS_VARIANT[order.status]}>{order.status}</Badge>
           </div>
         </div>
         {canWrite && (
           <div className="flex gap-2">
-            {challan.status === "DRAFT" && (
+            {order.status === "RESERVED" && (
               <button
-                onClick={handleConfirm}
+                onClick={handleFulfill}
                 disabled={acting}
                 className="rounded-md bg-gradient-to-r from-indigo-600 to-indigo-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-transform duration-100 hover:from-indigo-700 hover:to-indigo-600 active:scale-95 disabled:opacity-50"
               >
-                Confirm
+                Fulfill
               </button>
             )}
-            {challan.status !== "CANCELLED" && (
+            {order.status !== "CANCELLED" && (
               <button
                 onClick={() => setCancelDialogOpen(true)}
                 disabled={acting}
@@ -116,29 +116,27 @@ export default function ChallanDetailPage() {
 
       <ConfirmDialog
         open={cancelDialogOpen}
-        title="Cancel this challan?"
+        title="Cancel this order?"
         message={
-          challan.status === "CONFIRMED"
-            ? `This will restore ${challan.totalQuantity} unit(s) of stock and can't be undone.`
-            : "This can't be undone."
+          order.status === "FULFILLED"
+            ? `This will restore ${order.totalQuantity} unit(s) of physical stock and can't be undone.`
+            : `This releases the ${order.totalQuantity} unit(s) currently reserved and can't be undone.`
         }
-        confirmLabel="Cancel Challan"
+        confirmLabel="Cancel Order"
         danger
         onConfirm={handleCancel}
         onCancel={() => setCancelDialogOpen(false)}
       />
 
-      {actionError && (
-        <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p>
-      )}
+      {actionError && <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{actionError}</p>}
 
       <SpotlightCard className="mb-6 rounded-lg border border-gray-200 bg-white shadow-sm">
         <dl className="grid grid-cols-1 gap-x-6 gap-y-3 p-6 sm:grid-cols-2">
-        <Detail label="Customer" value={`${challan.customer.name} — ${challan.customer.businessName}`} />
-        <Detail label="Total Quantity" value={challan.totalQuantity} />
-        <Detail label="Created" value={new Date(challan.createdAt).toLocaleString()} />
-        <Detail label="Last Updated" value={new Date(challan.updatedAt).toLocaleString()} />
-      </dl>
+          <Detail label="Customer" value={`${order.customer.name} — ${order.customer.businessName}`} />
+          <Detail label="Total Quantity" value={order.totalQuantity} />
+          <Detail label="Created" value={new Date(order.createdAt).toLocaleString()} />
+          <Detail label="Last Updated" value={new Date(order.updatedAt).toLocaleString()} />
+        </dl>
       </SpotlightCard>
 
       <h2 className="mb-2 text-lg font-semibold tracking-tight text-gray-900">Items</h2>
@@ -154,7 +152,7 @@ export default function ChallanDetailPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {challan.items.map((item, idx) => (
+            {order.items.map((item, idx) => (
               <tr key={item.id} className={idx % 2 === 1 ? "bg-gray-50/50" : undefined}>
                 <td className="px-4 py-2.5 text-gray-900">{item.productName}</td>
                 <td className="px-4 py-2.5 text-gray-700">{item.sku}</td>
