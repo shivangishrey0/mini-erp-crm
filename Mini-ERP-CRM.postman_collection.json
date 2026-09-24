@@ -1,8 +1,8 @@
 {
   "info": {
     "_postman_id": "5f2c1a3e-8b4d-4e6a-9c2f-1d3e5a7b9c0d",
-    "name": "Mini ERP + CRM",
-    "description": "Full API collection for the Mini ERP + CRM Operations Portal. Log in first (Auth > Login) - the token, and IDs created along the way, are captured automatically into collection variables so the rest of the requests work out of the box.",
+    "name": "Mini Operations ERP",
+    "description": "Full API collection for the Mini Operations ERP. Log in first (Auth > Login Admin) - the token, and IDs created along the way, are captured automatically into collection variables so the rest of the requests work out of the box. Suggested run order: Auth > Locations > Products > Inventory > Work Orders > Transfers > Customers > Orders.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -23,7 +23,27 @@
       "value": ""
     },
     {
-      "key": "challanId",
+      "key": "locationId",
+      "value": ""
+    },
+    {
+      "key": "locationId2",
+      "value": ""
+    },
+    {
+      "key": "operationsUserId",
+      "value": ""
+    },
+    {
+      "key": "workOrderId",
+      "value": ""
+    },
+    {
+      "key": "transferId",
+      "value": ""
+    },
+    {
+      "key": "orderId",
       "value": ""
     }
   ],
@@ -51,22 +71,10 @@
     },
     {
       "name": "Auth",
-      "description": "Login (Admin) is the primary login for a full top-to-bottom collection run, since ADMIN passes every roleGuard in the API. Use the 'Role Logins' folder at the end of this collection to switch identities and test role-guard 403s individually.",
+      "description": "Login (Admin) is the primary login for a full top-to-bottom collection run, since ADMIN passes every roleGuard in the API. Use 'Role Logins' at the end to switch identities and test role-guard 403s individually.",
       "item": [
         {
           "name": "Login (Admin)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "  pm.collectionVariables.set('token', pm.response.json().token);",
-                  "}"
-                ]
-              }
-            }
-          ],
           "request": {
             "method": "POST",
             "header": [
@@ -89,7 +97,21 @@
                 "login"
               ]
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const value = json.token;",
+                  "  if (value) pm.collectionVariables.set('token', value);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Me",
@@ -113,6 +135,864 @@
               "path": [
                 "auth",
                 "me"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Users (Operations, for assignee pickers)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users?role=OPERATIONS",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "OPERATIONS",
+                  "disabled": false
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const value = json.data[0] && json.data[0].id;",
+                  "  if (value) pm.collectionVariables.set('operationsUserId', value);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Locations",
+      "item": [
+        {
+          "name": "List Locations",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const value = json.data[0] && json.data[0].id;",
+                  "  if (value) pm.collectionVariables.set('locationId', value);",
+                  "}",
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  if (json.data[1]) pm.collectionVariables.set('locationId2', json.data[1].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Location",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Regional Depot\",\n  \"code\": \"DEPOT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/locations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products (catalog)",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?page=1&pageSize=20&search=&category=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "disabled": false
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Steel Bolt 10mm\",\n  \"sku\": \"SKU-BOLT-10\",\n  \"category\": \"Hardware\",\n  \"unitPrice\": 5.5,\n  \"minStockAlert\": 50\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const value = json.product.id;",
+                  "  if (value) pm.collectionVariables.set('productId', value);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "{{productId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Product (partial)",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"Fasteners\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/{{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "products",
+                "{{productId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Inventory",
+      "item": [
+        {
+          "name": "List Inventory",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory?page=1&pageSize=20&search=&category=&locationId=&productId=&lowStock=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "disabled": false
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "category",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "locationId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "productId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "lowStock",
+                  "value": "true",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Adjust Stock (IN) at Location 1",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"locationId\": \"{{locationId}}\",\n  \"batch\": \"DEFAULT\",\n  \"quantity\": 100,\n  \"type\": \"IN\",\n  \"reason\": \"Initial stock\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/adjust",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "adjust"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Adjust Stock (OUT - insufficient, expect 400)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": \"{{productId}}\",\n  \"locationId\": \"{{locationId}}\",\n  \"batch\": \"DEFAULT\",\n  \"quantity\": 999999,\n  \"type\": \"OUT\",\n  \"reason\": \"Damaged\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/inventory/adjust",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory",
+                "adjust"
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Inventory for Product",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/inventory?productId={{productId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "inventory"
+              ],
+              "query": [
+                {
+                  "key": "productId",
+                  "value": "{{productId}}",
+                  "disabled": false
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Work Orders",
+      "item": [
+        {
+          "name": "List Work Orders",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/work-orders?page=1&pageSize=20&status=&locationId=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "work-orders"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "disabled": false
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "locationId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Work Order (Admin only)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locationId\": \"{{locationId2}}\",\n  \"productId\": \"{{productId}}\",\n  \"requiredQty\": 30,\n  \"assignedUserId\": \"{{operationsUserId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work-orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "work-orders"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const value = json.workOrder.id;",
+                  "  if (value) pm.collectionVariables.set('workOrderId', value);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Work Order by ID (shows computed shortage)",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/work-orders/{{workOrderId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "work-orders",
+                "{{workOrderId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Advance Status -> IN_PROGRESS",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work-orders/{{workOrderId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "work-orders",
+                "{{workOrderId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Advance Status -> COMPLETED (fails if shortage unresolved)",
+          "request": {
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"COMPLETED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/work-orders/{{workOrderId}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "work-orders",
+                "{{workOrderId}}",
+                "status"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Internal Transfers",
+      "item": [
+        {
+          "name": "List Transfers",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transfers?page=1&pageSize=20&status=",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transfers"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": false
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "disabled": false
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Request Transfer (Location 1 -> Location 2)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceLocationId\": \"{{locationId}}\",\n  \"destinationLocationId\": \"{{locationId2}}\",\n  \"productId\": \"{{productId}}\",\n  \"batch\": \"DEFAULT\",\n  \"quantity\": 20\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transfers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transfers"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const value = json.transfer.id;",
+                  "  if (value) pm.collectionVariables.set('transferId', value);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dispatch Transfer (decrements source only)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transfers/{{transferId}}/dispatch",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transfers",
+                "{{transferId}}",
+                "dispatch"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Transfer by ID",
+          "request": {
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transfers/{{transferId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transfers",
+                "{{transferId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Receive Transfer (increments destination)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transfers/{{transferId}}/receive",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transfers",
+                "{{transferId}}",
+                "receive"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Receive Transfer again (expect 400 - no double receive)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transfers/{{transferId}}/receive",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "transfers",
+                "{{transferId}}",
+                "receive"
               ]
             }
           }
@@ -147,11 +1027,13 @@
               "query": [
                 {
                   "key": "page",
-                  "value": "1"
+                  "value": "1",
+                  "disabled": false
                 },
                 {
                   "key": "pageSize",
-                  "value": "20"
+                  "value": "20",
+                  "disabled": false
                 },
                 {
                   "key": "search",
@@ -174,18 +1056,6 @@
         },
         {
           "name": "Create Customer",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "  pm.collectionVariables.set('customerId', pm.response.json().customer.id);",
-                  "}"
-                ]
-              }
-            }
-          ],
           "request": {
             "method": "POST",
             "auth": {
@@ -216,7 +1086,21 @@
                 "customers"
               ]
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const value = json.customer.id;",
+                  "  if (value) pm.collectionVariables.set('customerId', value);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get Customer by ID",
@@ -345,10 +1229,10 @@
       ]
     },
     {
-      "name": "Products",
+      "name": "Customer Orders",
       "item": [
         {
-          "name": "List Products",
+          "name": "List Orders",
           "request": {
             "method": "GET",
             "auth": {
@@ -362,282 +1246,23 @@
             },
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/products?page=1&pageSize=20&search=&category=&lowStock=",
+              "raw": "{{baseUrl}}/orders?page=1&pageSize=20&status=&customerId=",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "products"
+                "orders"
               ],
               "query": [
                 {
                   "key": "page",
-                  "value": "1"
+                  "value": "1",
+                  "disabled": false
                 },
                 {
                   "key": "pageSize",
-                  "value": "20"
-                },
-                {
-                  "key": "search",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "category",
-                  "value": "",
-                  "disabled": true
-                },
-                {
-                  "key": "lowStock",
-                  "value": "true",
-                  "disabled": true
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Create Product",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "  pm.collectionVariables.set('productId', pm.response.json().product.id);",
-                  "}"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}"
-                }
-              ]
-            },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Steel Bolt 10mm\",\n  \"sku\": \"SKU-BOLT-10\",\n  \"category\": \"Hardware\",\n  \"unitPrice\": 5.50,\n  \"minStockAlert\": 50,\n  \"location\": \"Rack A1\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/products",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "products"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Product by ID",
-          "request": {
-            "method": "GET",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}"
-                }
-              ]
-            },
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/products/{{productId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "products",
-                "{{productId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Update Product (partial)",
-          "request": {
-            "method": "PATCH",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}"
-                }
-              ]
-            },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"location\": \"Rack B2\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/products/{{productId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "products",
-                "{{productId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Adjust Stock (IN)",
-          "request": {
-            "method": "POST",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}"
-                }
-              ]
-            },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"quantity\": 100,\n  \"type\": \"IN\",\n  \"reason\": \"Initial stock\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/products/{{productId}}/stock-movements",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "products",
-                "{{productId}}",
-                "stock-movements"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Adjust Stock (OUT - insufficient, expect 400)",
-          "request": {
-            "method": "POST",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}"
-                }
-              ]
-            },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"quantity\": 999999,\n  \"type\": \"OUT\",\n  \"reason\": \"Damaged\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/products/{{productId}}/stock-movements",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "products",
-                "{{productId}}",
-                "stock-movements"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Movement History",
-          "request": {
-            "method": "GET",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}"
-                }
-              ]
-            },
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/products/{{productId}}/movements",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "products",
-                "{{productId}}",
-                "movements"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "Challans",
-      "item": [
-        {
-          "name": "List Challans",
-          "request": {
-            "method": "GET",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}"
-                }
-              ]
-            },
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/challans?page=1&pageSize=20&status=&customerId=",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "challans"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "pageSize",
-                  "value": "20"
+                  "value": "20",
+                  "disabled": false
                 },
                 {
                   "key": "status",
@@ -654,19 +1279,7 @@
           }
         },
         {
-          "name": "Create Challan (Draft)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "  pm.collectionVariables.set('challanId', pm.response.json().challan.id);",
-                  "}"
-                ]
-              }
-            }
-          ],
+          "name": "Create Order (reserves stock immediately)",
           "request": {
             "method": "POST",
             "auth": {
@@ -686,21 +1299,69 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"items\": [\n    { \"productId\": \"{{productId}}\", \"quantity\": 10 }\n  ]\n}"
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"locationId\": \"{{locationId}}\",\n      \"batch\": \"DEFAULT\",\n      \"quantity\": 10\n    }\n  ]\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/challans",
+              "raw": "{{baseUrl}}/orders",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "challans"
+                "orders"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const value = json.order.id;",
+                  "  if (value) pm.collectionVariables.set('orderId', value);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Order (over available - expect 400)",
+          "request": {
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"items\": [\n    {\n      \"productId\": \"{{productId}}\",\n      \"locationId\": \"{{locationId}}\",\n      \"batch\": \"DEFAULT\",\n      \"quantity\": 999999\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "orders"
               ]
             }
           }
         },
         {
-          "name": "Get Challan by ID",
+          "name": "Get Order by ID",
           "request": {
             "method": "GET",
             "auth": {
@@ -714,53 +1375,19 @@
             },
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/challans/{{challanId}}",
+              "raw": "{{baseUrl}}/orders/{{orderId}}",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "challans",
-                "{{challanId}}"
+                "orders",
+                "{{orderId}}"
               ]
             }
           }
         },
         {
-          "name": "Create Challan (Create & Confirm in one call)",
-          "request": {
-            "method": "POST",
-            "auth": {
-              "type": "bearer",
-              "bearer": [
-                {
-                  "key": "token",
-                  "value": "{{token}}"
-                }
-              ]
-            },
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"customerId\": \"{{customerId}}\",\n  \"items\": [\n    { \"productId\": \"{{productId}}\", \"quantity\": 10 }\n  ],\n  \"status\": \"CONFIRMED\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/challans",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "challans"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Confirm Challan",
+          "name": "Fulfill Order (reserved -> physical deduction)",
           "request": {
             "method": "POST",
             "auth": {
@@ -774,20 +1401,20 @@
             },
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/challans/{{challanId}}/confirm",
+              "raw": "{{baseUrl}}/orders/{{orderId}}/fulfill",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "challans",
-                "{{challanId}}",
-                "confirm"
+                "orders",
+                "{{orderId}}",
+                "fulfill"
               ]
             }
           }
         },
         {
-          "name": "Cancel Challan",
+          "name": "Cancel Order (releases reservation / restocks)",
           "request": {
             "method": "POST",
             "auth": {
@@ -801,13 +1428,13 @@
             },
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/challans/{{challanId}}/cancel",
+              "raw": "{{baseUrl}}/orders/{{orderId}}/cancel",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
-                "challans",
-                "{{challanId}}",
+                "orders",
+                "{{orderId}}",
                 "cancel"
               ]
             }
@@ -817,22 +1444,10 @@
     },
     {
       "name": "Role Logins (manual 403 testing)",
-      "description": "Run these individually - not part of the main top-to-bottom flow. Each overwrites the active {{token}}, so run one, then manually try a write request above to see the matching 403.",
+      "description": "Run these individually - not part of the main top-to-bottom flow. Each overwrites the active {{token}}, so run one, then manually try a write request above to see the matching 403 (e.g. Sales creating a Product, or Operations creating an Order).",
       "item": [
         {
           "name": "Login (Sales)",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "  pm.collectionVariables.set('token', pm.response.json().token);",
-                  "}"
-                ]
-              }
-            }
-          ],
           "request": {
             "method": "POST",
             "header": [
@@ -855,22 +1470,24 @@
                 "login"
               ]
             }
-          }
-        },
-        {
-          "name": "Login (Warehouse)",
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 200) {",
-                  "  pm.collectionVariables.set('token', pm.response.json().token);",
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const value = json.token;",
+                  "  if (value) pm.collectionVariables.set('token', value);",
                   "}"
                 ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Login (Operations)",
           "request": {
             "method": "POST",
             "header": [
@@ -881,7 +1498,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"warehouse@example.com\",\n  \"password\": \"Password123!\"\n}"
+              "raw": "{\n  \"email\": \"operations@example.com\",\n  \"password\": \"Password123!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
@@ -893,45 +1510,21 @@
                 "login"
               ]
             }
-          }
-        },
-        {
-          "name": "Login (Accounts)",
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 200) {",
-                  "  pm.collectionVariables.set('token', pm.response.json().token);",
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  const value = json.token;",
+                  "  if (value) pm.collectionVariables.set('token', value);",
                   "}"
                 ]
               }
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"accounts@example.com\",\n  \"password\": \"Password123!\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/auth/login",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "login"
-              ]
-            }
-          }
+          ]
         }
       ]
     }
