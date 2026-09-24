@@ -1,13 +1,15 @@
 import { NavLink, useLocation, useOutlet } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
-import { DashboardIcon, CustomersIcon, ProductsIcon, ChallansIcon, LogoutIcon } from "./icons";
+import { DashboardIcon, CustomersIcon, InventoryIcon, WorkOrdersIcon, TransfersIcon, OrdersIcon, LogoutIcon } from "./icons";
 
 const navItems = [
   { to: "/", label: "Dashboard", Icon: DashboardIcon },
   { to: "/customers", label: "Customers", Icon: CustomersIcon },
-  { to: "/products", label: "Products", Icon: ProductsIcon },
-  { to: "/challans", label: "Challans", Icon: ChallansIcon },
+  { to: "/inventory", label: "Inventory", Icon: InventoryIcon },
+  { to: "/work-orders", label: "Work Orders", Icon: WorkOrdersIcon },
+  { to: "/transfers", label: "Internal Transfers", Icon: TransfersIcon },
+  { to: "/orders", label: "Customer Orders", Icon: OrdersIcon },
 ];
 
 function initials(name) {

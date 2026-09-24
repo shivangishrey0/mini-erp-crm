@@ -1,9 +1,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 
 // Reserved for irreversible actions per the "confirmations only where they
-// matter" principle - e.g. cancelling a challan is a terminal state
-// transition with no undo, but confirming a draft isn't (you can still
-// cancel it afterward), so only cancel uses this.
+// matter" principle - e.g. cancelling an order is a terminal state
+// transition with no undo, so only cancel uses this.
 export default function ConfirmDialog({ open, title, message, confirmLabel = "Confirm", danger = false, onConfirm, onCancel }) {
   return (
     <AnimatePresence>

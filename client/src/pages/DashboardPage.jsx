@@ -8,14 +8,14 @@ import EmptyState from "../components/EmptyState";
 import TableSkeleton from "../components/TableSkeleton";
 import SpotlightCard from "../components/SpotlightCard";
 import AnimatedCounter from "../components/AnimatedCounter";
-import Badge, { CHALLAN_STATUS_VARIANT } from "../components/Badge";
-import { CustomersIcon, ProductsIcon, ChallansIcon, WarningIcon } from "../components/icons";
+import Badge, { ORDER_STATUS_VARIANT } from "../components/Badge";
+import { CustomersIcon, InventoryIcon, WorkOrdersIcon, TransfersIcon, OrdersIcon, WarningIcon } from "../components/icons";
 import { staggerContainer as cardContainer, staggerItem as cardItem } from "../lib/motionVariants";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
-  const [recentChallans, setRecentChallans] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -23,21 +23,22 @@ export default function DashboardPage() {
     setLoading(true);
     setError("");
     // pageSize:1 keeps these cheap - only pagination.total is needed for the
-    // stat cards, not the actual rows (except the recent-challans one).
+    // stat cards, not the actual rows (except the recent-orders one).
     return Promise.all([
       api.get("/customers", { params: { pageSize: 1 } }),
-      api.get("/products", { params: { pageSize: 1 } }),
-      api.get("/products", { params: { lowStock: true, pageSize: 1 } }),
-      api.get("/challans", { params: { pageSize: 5 } }),
+      api.get("/inventory", { params: { lowStock: true, pageSize: 1 } }),
+      api.get("/work-orders", { params: { status: "ASSIGNED", pageSize: 1 } }),
+      api.get("/transfers", { params: { status: "REQUESTED", pageSize: 1 } }),
+      api.get("/orders", { params: { pageSize: 5 } }),
     ])
-      .then(([customers, products, lowStock, challans]) => {
+      .then(([customers, lowStock, workOrders, transfers, orders]) => {
         setStats({
           customers: customers.data.pagination.total,
-          products: products.data.pagination.total,
           lowStock: lowStock.data.pagination.total,
-          challans: challans.data.pagination.total,
+          openWorkOrders: workOrders.data.pagination.total,
+          pendingTransfers: transfers.data.pagination.total,
         });
-        setRecentChallans(challans.data.data);
+        setRecentOrders(orders.data.data);
       })
       .catch(() => setError("Failed to load dashboard data."))
       .finally(() => setLoading(false));
@@ -71,9 +72,9 @@ export default function DashboardPage() {
 
   const cards = [
     { label: "Customers", value: stats.customers, Icon: CustomersIcon, to: "/customers", gradient: "from-indigo-500 to-indigo-600" },
-    { label: "Products", value: stats.products, Icon: ProductsIcon, to: "/products", gradient: "from-blue-500 to-blue-600" },
-    { label: "Low Stock", value: stats.lowStock, Icon: WarningIcon, to: "/products?lowStock=true", gradient: "from-rose-500 to-red-600" },
-    { label: "Challans", value: stats.challans, Icon: ChallansIcon, to: "/challans", gradient: "from-emerald-500 to-emerald-600" },
+    { label: "Low Stock", value: stats.lowStock, Icon: WarningIcon, to: "/inventory", gradient: "from-rose-500 to-red-600" },
+    { label: "Open Work Orders", value: stats.openWorkOrders, Icon: WorkOrdersIcon, to: "/work-orders?status=ASSIGNED", gradient: "from-blue-500 to-blue-600" },
+    { label: "Pending Transfers", value: stats.pendingTransfers, Icon: TransfersIcon, to: "/transfers?status=REQUESTED", gradient: "from-emerald-500 to-emerald-600" },
   ];
 
   return (
@@ -106,40 +107,40 @@ export default function DashboardPage() {
         ))}
       </motion.div>
 
-      <h2 className="mb-2 mt-8 text-lg font-semibold tracking-tight text-gray-900">Recent Challans</h2>
+      <h2 className="mb-2 mt-8 text-lg font-semibold tracking-tight text-gray-900">Recent Customer Orders</h2>
       <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white shadow-sm">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Challan #</th>
+              <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Order #</th>
               <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Customer</th>
               <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Status</th>
               <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500">Created</th>
             </tr>
           </thead>
           <motion.tbody variants={cardContainer} initial="hidden" animate="show" className="divide-y divide-gray-100">
-            {recentChallans.map((challan, idx) => (
+            {recentOrders.map((order, idx) => (
               <motion.tr
-                key={challan.id}
+                key={order.id}
                 variants={cardItem}
                 className={idx % 2 === 1 ? "bg-gray-50/50 hover:bg-gray-100/70" : "hover:bg-gray-50"}
               >
                 <td className="px-4 py-2.5">
-                  <Link to={`/challans/${challan.id}`} className="font-medium text-indigo-600 hover:underline">
-                    {challan.challanNumber}
+                  <Link to={`/orders/${order.id}`} className="font-medium text-indigo-600 hover:underline">
+                    {order.orderNumber}
                   </Link>
                 </td>
-                <td className="px-4 py-2.5 text-gray-700">{challan.customer.businessName}</td>
+                <td className="px-4 py-2.5 text-gray-700">{order.customer.businessName}</td>
                 <td className="px-4 py-2.5">
-                  <Badge variant={CHALLAN_STATUS_VARIANT[challan.status]}>{challan.status}</Badge>
+                  <Badge variant={ORDER_STATUS_VARIANT[order.status]}>{order.status}</Badge>
                 </td>
-                <td className="px-4 py-2.5 text-gray-500">{new Date(challan.createdAt).toLocaleDateString()}</td>
+                <td className="px-4 py-2.5 text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</td>
               </motion.tr>
             ))}
-            {recentChallans.length === 0 && (
+            {recentOrders.length === 0 && (
               <tr>
                 <td colSpan={4}>
-                  <EmptyState icon={ChallansIcon} message="No challans yet." />
+                  <EmptyState icon={OrdersIcon} message="No orders yet." />
                 </td>
               </tr>
             )}

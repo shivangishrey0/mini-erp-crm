@@ -104,8 +104,7 @@ export default function LoginPage() {
           <ul className="space-y-1 font-mono">
             <li>admin@example.com &middot; ADMIN</li>
             <li>sales@example.com &middot; SALES</li>
-            <li>warehouse@example.com &middot; WAREHOUSE</li>
-            <li>accounts@example.com &middot; ACCOUNTS</li>
+            <li>operations@example.com &middot; OPERATIONS</li>
           </ul>
           <p className="mt-2 font-mono">Password123!</p>
         </div>

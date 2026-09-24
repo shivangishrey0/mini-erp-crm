@@ -1,8 +1,8 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-// allowedRoles is optional so Task 8 can role-gate specific pages
-// (e.g. <ProtectedRoute allowedRoles={["ADMIN", "WAREHOUSE"]}>) without
+// allowedRoles is optional so a route can be role-gated
+// (e.g. <ProtectedRoute allowedRoles={["ADMIN", "OPERATIONS"]}>) without
 // needing new infrastructure.
 export default function ProtectedRoute({ children, allowedRoles }) {
   const { user } = useAuth();
