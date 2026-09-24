@@ -10,9 +10,8 @@ datasource db {
 
 enum Role {
   ADMIN
+  OPERATIONS
   SALES
-  WAREHOUSE
-  ACCOUNTS
 }
 
 enum CustomerType {
@@ -32,27 +31,41 @@ enum MovementType {
   OUT
 }
 
-enum ChallanStatus {
-  DRAFT
-  CONFIRMED
+enum OrderStatus {
+  RESERVED
+  FULFILLED
   CANCELLED
 }
 
+enum WorkOrderStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum TransferStatus {
+  REQUESTED
+  DISPATCHED
+  RECEIVED
+}
+
 model User {
-  id        String          @id @default(uuid())
+  id        String   @id @default(uuid())
   name      String
-  email     String          @unique
+  email     String   @unique
   password  String
   role      Role
-  createdAt DateTime        @default(now())
+  createdAt DateTime @default(now())
 
-  followUps FollowUpNote[]
-  movements StockMovement[]
-  challans  Challan[]
+  followUps  FollowUpNote[]
+  movements  StockMovement[]
+  orders     Order[]
+  workOrders WorkOrder[]
+  transfers  Transfer[]
 }
 
 model Customer {
-  id           String          @id @default(uuid())
+  id           String         @id @default(uuid())
   name         String
   mobile       String
   email        String?
@@ -60,14 +73,14 @@ model Customer {
   gstNumber    String?
   type         CustomerType
   address      String
-  status       CustomerStatus  @default(LEAD)
+  status       CustomerStatus @default(LEAD)
   followUpDate DateTime?
   notes        String?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
 
-  followUps    FollowUpNote[]
-  challans     Challan[]
+  followUps FollowUpNote[]
+  orders    Order[]
 }
 
 model FollowUpNote {
@@ -81,56 +94,127 @@ model FollowUpNote {
 }
 
 model Product {
-  id            String          @id @default(uuid())
+  id            String   @id @default(uuid())
   name          String
-  sku           String          @unique
+  sku           String   @unique
   category      String
-  unitPrice     Decimal         @db.Decimal(10, 2)
-  currentStock  Int             @default(0)
-  minStockAlert Int             @default(0)
-  location      String
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  unitPrice     Decimal  @db.Decimal(10, 2)
+  minStockAlert Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  movements     StockMovement[]
-  challanItems  ChallanItem[]
+  inventoryRecords InventoryRecord[]
+  movements        StockMovement[]
+  orderItems       OrderItem[]
+  workOrders       WorkOrder[]
+  transfers        Transfer[]
+}
+
+model Location {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String   @unique
+  createdAt DateTime @default(now())
+
+  inventoryRecords InventoryRecord[]
+  stockMovements   StockMovement[]
+  orderItems       OrderItem[]
+  workOrders       WorkOrder[]
+  transfersOut     Transfer[]        @relation("TransferSource")
+  transfersIn      Transfer[]        @relation("TransferDestination")
+}
+
+// The brief's "Inventory" entity: one row per Item x Location x Batch.
+model InventoryRecord {
+  id          String   @id @default(uuid())
+  product     Product  @relation(fields: [productId], references: [id])
+  productId   String
+  location    Location @relation(fields: [locationId], references: [id])
+  locationId  String
+  batch       String
+  physicalQty Int      @default(0)
+  reservedQty Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([productId, locationId, batch])
 }
 
 model StockMovement {
-  id        String       @id @default(uuid())
-  product   Product      @relation(fields: [productId], references: [id])
-  productId String
-  quantity  Int
-  type      MovementType
-  reason    String
-  createdBy User         @relation(fields: [userId], references: [id])
-  userId    String
-  createdAt DateTime     @default(now())
+  id         String       @id @default(uuid())
+  product    Product      @relation(fields: [productId], references: [id])
+  productId  String
+  location   Location     @relation(fields: [locationId], references: [id])
+  locationId String
+  batch      String
+  quantity   Int
+  type       MovementType
+  reason     String
+  createdBy  User         @relation(fields: [userId], references: [id])
+  userId     String
+  createdAt  DateTime     @default(now())
 }
 
-model Challan {
-  id            String        @id @default(uuid())
-  challanNumber String        @unique
-  customer      Customer      @relation(fields: [customerId], references: [id])
+model Order {
+  id            String      @id @default(uuid())
+  orderNumber   String      @unique
+  customer      Customer    @relation(fields: [customerId], references: [id])
   customerId    String
-  status        ChallanStatus @default(DRAFT)
+  status        OrderStatus @default(RESERVED)
   totalQuantity Int
-  createdBy     User          @relation(fields: [userId], references: [id])
+  createdBy     User        @relation(fields: [userId], references: [id])
   userId        String
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  items         ChallanItem[]
+  items OrderItem[]
 }
 
-model ChallanItem {
-  id          String  @id @default(uuid())
-  challan     Challan @relation(fields: [challanId], references: [id], onDelete: Cascade)
-  challanId   String
-  product     Product @relation(fields: [productId], references: [id])
+model OrderItem {
+  id          String   @id @default(uuid())
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId     String
+  product     Product  @relation(fields: [productId], references: [id])
   productId   String
+  location    Location @relation(fields: [locationId], references: [id])
+  locationId  String
+  batch       String
   productName String
   sku         String
-  unitPrice   Decimal @db.Decimal(10, 2)
+  unitPrice   Decimal  @db.Decimal(10, 2)
   quantity    Int
+}
+
+model WorkOrder {
+  id              String          @id @default(uuid())
+  workOrderNumber String          @unique
+  location        Location        @relation(fields: [locationId], references: [id])
+  locationId      String
+  product         Product         @relation(fields: [productId], references: [id])
+  productId       String
+  requiredQty     Int
+  assignedUser    User            @relation(fields: [assignedUserId], references: [id])
+  assignedUserId  String
+  status          WorkOrderStatus @default(ASSIGNED)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model Transfer {
+  id                    String         @id @default(uuid())
+  transferNumber        String         @unique
+  sourceLocation        Location       @relation("TransferSource", fields: [sourceLocationId], references: [id])
+  sourceLocationId      String
+  destinationLocation   Location       @relation("TransferDestination", fields: [destinationLocationId], references: [id])
+  destinationLocationId String
+  product               Product        @relation(fields: [productId], references: [id])
+  productId             String
+  batch                 String
+  quantity              Int
+  status                TransferStatus @default(REQUESTED)
+  requestedBy           User           @relation(fields: [requestedById], references: [id])
+  requestedById         String
+  dispatchedAt          DateTime?
+  receivedAt            DateTime?
+  createdAt             DateTime       @default(now())
 }
