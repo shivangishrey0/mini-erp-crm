@@ -17,4 +17,6 @@ export default function Badge({ children, variant = "gray" }) {
 }
 
 export const CUSTOMER_STATUS_VARIANT = { LEAD: "blue", ACTIVE: "green", INACTIVE: "gray" };
-export const CHALLAN_STATUS_VARIANT = { DRAFT: "gray", CONFIRMED: "green", CANCELLED: "red" };
+export const ORDER_STATUS_VARIANT = { RESERVED: "amber", FULFILLED: "green", CANCELLED: "red" };
+export const WORK_ORDER_STATUS_VARIANT = { ASSIGNED: "gray", IN_PROGRESS: "amber", COMPLETED: "green" };
+export const TRANSFER_STATUS_VARIANT = { REQUESTED: "gray", DISPATCHED: "amber", RECEIVED: "green" };

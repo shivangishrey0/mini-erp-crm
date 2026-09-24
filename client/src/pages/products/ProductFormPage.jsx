@@ -5,7 +5,7 @@ import Spinner from "../../components/Spinner";
 import Breadcrumbs from "../../components/Breadcrumbs";
 import { useToast } from "../../context/ToastContext";
 
-const EMPTY_FORM = { name: "", sku: "", category: "", unitPrice: "", minStockAlert: "0", location: "" };
+const EMPTY_FORM = { name: "", sku: "", category: "", unitPrice: "", minStockAlert: "0" };
 
 export default function ProductFormPage() {
   const { id } = useParams();
@@ -31,7 +31,6 @@ export default function ProductFormPage() {
           category: product.category,
           unitPrice: String(product.unitPrice),
           minStockAlert: String(product.minStockAlert),
-          location: product.location,
         });
       })
       .catch(() => setError("Failed to load product."))
@@ -96,12 +95,11 @@ export default function ProductFormPage() {
             value={form.minStockAlert}
             onChange={(v) => updateField("minStockAlert", v)}
           />
-          <Field label="Location" required value={form.location} onChange={(v) => updateField("location", v)} />
         </div>
 
         {!isEdit && (
           <p className="text-xs text-gray-500">
-            New products start at 0 stock. Add initial stock afterward via the product's detail page.
+            This is the catalog record only. Add stock for a location/batch afterward from the Inventory page.
           </p>
         )}
 
