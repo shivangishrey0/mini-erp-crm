@@ -27,7 +27,15 @@ export interface LockedInventoryRow {
 // a second transaction touching the same row blocks until the first
 // commits and sees the updated numbers - the "solve it at the
 // backend/database level" requirement.
-export async function lockInventoryRecord(tx: TxClient, key: InventoryKey): Promise<LockedInventoryRow> {
+export async function lockInventoryRecord(tx: TxClient, rawKey: InventoryKey): Promise<LockedInventoryRow> {
+  // Callers often pass a wider object (an order line, a transfer row) that
+  // happens to structurally satisfy InventoryKey - narrow to exactly these
+  // 3 fields, since a stray extra field (e.g. `quantity`) would otherwise
+  // flow straight into Prisma's composite-key `where`/`create` and get
+  // rejected at runtime (TS excess-property checks don't catch this for
+  // variables, only object literals).
+  const key: InventoryKey = { productId: rawKey.productId, locationId: rawKey.locationId, batch: rawKey.batch };
+
   await tx.inventoryRecord.upsert({
     where: { productId_locationId_batch: key },
     update: {},
