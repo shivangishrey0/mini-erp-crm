@@ -8,6 +8,9 @@ const config: Config = {
   globalTeardown: "<rootDir>/tests/globalTeardown.ts",
   testMatch: ["<rootDir>/tests/**/*.test.ts"],
   testTimeout: 20000,
+  transform: {
+    "^.+\\.ts$": ["ts-jest", { tsconfig: "tsconfig.test.json" }],
+  },
 };
 
 export default config;
